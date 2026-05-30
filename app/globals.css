@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: #FAF6F0;
+  color: #2C1810;
+  min-height: 100%;
+}
+
+body {
+  font-feature-settings: "rlig" 1, "calt" 1;
+  background-image:
+    radial-gradient(ellipse at top, rgba(139, 94, 60, 0.06), transparent 60%),
+    radial-gradient(ellipse at bottom right, rgba(196, 125, 78, 0.05), transparent 60%);
+}
+
+/* Subtle paper grain texture */
+.starfield::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    radial-gradient(1.5px 1.5px at 20% 30%, rgba(139, 94, 60, 0.08), transparent),
+    radial-gradient(1px 1px at 70% 60%, rgba(196, 125, 78, 0.06), transparent),
+    radial-gradient(1.5px 1.5px at 40% 80%, rgba(139, 94, 60, 0.07), transparent),
+    radial-gradient(1px 1px at 90% 20%, rgba(196, 125, 78, 0.05), transparent),
+    radial-gradient(1px 1px at 10% 70%, rgba(139, 94, 60, 0.06), transparent),
+    radial-gradient(1.5px 1.5px at 60% 10%, rgba(196, 125, 78, 0.05), transparent);
+  background-size: 300px 300px;
+  pointer-events: none;
+  opacity: 1;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(139, 94, 60, 0.12);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(139, 94, 60, 0.18);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #8B5E3C 0%, #C47D4E 50%, #5B8C6D 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(139, 94, 60, 0.25), transparent);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #C47D4E;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Custom range slider styling for the paper theme */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(139, 94, 60, 0.15);
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8B5E3C, #C47D4E);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(139, 94, 60, 0.3);
+  transition: transform 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8B5E3C, #C47D4E);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 8px rgba(139, 94, 60, 0.3);
+}
