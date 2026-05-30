@@ -17,12 +17,12 @@ export function hasGeminiKey() {
 export async function embedText(text: string): Promise<number[] | null> {
   const client = geminiClient();
   if (!client) return null;
-  const model = client.getGenerativeModel({ model: "text-embedding-004" });
+  const model = client.getGenerativeModel({ model: "gemini-embedding-2" });
   const res = await model.embedContent(text);
   return res.embedding.values;
 }
 
-const ROADMAP_MODEL = "gemini-2.0-flash-exp";
+const ROADMAP_MODEL = "gemini-3.5-flash";
 
 export type RoadmapMilestone = {
   quarter: string;
