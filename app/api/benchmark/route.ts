@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import type { StudentProfile } from "@/lib/profile";
 import caseStudies from "@/data/case-studies.json";
 
+export const dynamic = "force-dynamic";
+
 type CaseStudy = {
   id: string;
   title: string;

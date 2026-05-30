@@ -3,6 +3,7 @@ import { scoreProbability, type ProbabilityInputs, type UniversityForModel } fro
 import universities from "@/data/universities.json";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type UniversityRaw = {
   id: string;

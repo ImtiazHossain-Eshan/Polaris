@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getDb } from "@/lib/db/mongodb";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   try {
     const { name, email, password } = await req.json();

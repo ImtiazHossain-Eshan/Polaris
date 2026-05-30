@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { updateMilestoneStatus, setMilestoneDeadline, type MilestoneStatus } from "@/lib/db/collections";
 
+export const dynamic = "force-dynamic";
+
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
