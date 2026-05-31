@@ -31,10 +31,10 @@ export default function SignInPage() {
         return;
       }
 
-      // Force the Next.js router to pick up the new session cookie
-      // before navigating to the middleware-protected dashboard.
-      router.refresh();
-      router.push("/dashboard");
+      // Hard redirect ensures the browser sends the fresh session cookie.
+      // router.push does a client-side navigation that can race with the
+      // middleware auth check before the cookie is fully available.
+      window.location.href = "/dashboard";
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);

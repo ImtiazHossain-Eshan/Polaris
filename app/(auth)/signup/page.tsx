@@ -49,8 +49,7 @@ export default function SignUpPage() {
       }
 
       // Parents/partners go to monitoring; students to their dashboard.
-      router.refresh();
-      router.push(role === "student" ? "/dashboard" : "/monitor");
+      window.location.href = role === "student" ? "/dashboard" : "/monitor";
     } catch {
       setError("Something went wrong");
       setLoading(false);
