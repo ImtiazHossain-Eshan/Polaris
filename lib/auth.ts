@@ -1,9 +1,19 @@
 import type { NextAuthOptions } from "next-auth";
 
-// Vercel doesn't set NEXTAUTH_URL automatically — fall back to VERCEL_URL
-if (!process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
-  process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`;
+// On Vercel, force the canonical https URL even if NEXTAUTH_URL was left as a
+// localhost/http value — otherwise NextAuth writes a non-secure cookie that the
+// (HTTPS) middleware can't read, bouncing users back to /signin after login.
+const onVercel = !!process.env.VERCEL;
+if (onVercel && process.env.VERCEL_URL) {
+  if (!process.env.NEXTAUTH_URL || !process.env.NEXTAUTH_URL.startsWith("https://")) {
+    process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`;
+  }
 }
+// Use secure cookies whenever we're on HTTPS (Vercel or an https NEXTAUTH_URL).
+// This keeps the cookie name (__Secure-…) consistent between the auth callback
+// and the middleware's getToken, which is what makes login "stick".
+const useSecureCookies =
+  onVercel || (process.env.NEXTAUTH_URL?.startsWith("https://") ?? false);
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { getDb } from "@/lib/db/mongodb";
@@ -16,6 +26,7 @@ import {
 import { isAdminEmail } from "@/lib/env";
 
 export const authOptions: NextAuthOptions = {
+  useSecureCookies,
   providers: [
     CredentialsProvider({
       name: "credentials",
