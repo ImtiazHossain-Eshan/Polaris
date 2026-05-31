@@ -13,8 +13,9 @@ export default withAuth({
 
 export const config = {
   matcher: [
-    // Only protect routes that strictly require an authenticated account.
-    // /dashboard and /onboard work in guest-mode via localStorage.
+    // Strict paywall: roadmap generation is Pro-only, so these all require auth.
+    "/dashboard/:path*",
+    "/onboard/:path*",
     "/billing/:path*",
     "/family/:path*",
     "/monitor/:path*",

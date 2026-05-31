@@ -156,26 +156,6 @@ export default function SignUpPage() {
             {loading ? "Creating account…" : "Create account"}
           </button>
         </form>
-        {/* Divider */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-polaris-200" />
-          </div>
-          <div className="relative flex justify-center text-xs">
-            <span className="bg-white px-3 text-ink-muted">or</span>
-          </div>
-        </div>
-
-        {/* Guest access */}
-        <Link
-          href="/onboard"
-          className="block w-full rounded-full border-2 border-polaris-300 py-3 text-center text-sm font-semibold text-ink hover:bg-polaris-50 hover:border-polaris-400 transition-colors duration-150"
-        >
-          Continue as Guest
-        </Link>
-        <p className="mt-2 text-center text-xs text-ink-muted">
-          No account needed — your data stays in this browser
-        </p>
 
         <p className="mt-6 text-center text-sm text-ink-dim">
           Already have an account?{" "}
