@@ -159,7 +159,7 @@ export default function DashboardPage() {
 
       setData((prev) => {
         if (!prev) return prev;
-        return {
+        const newData = {
           ...prev,
           roadmap: {
             ...prev.roadmap,
@@ -170,6 +170,10 @@ export default function DashboardPage() {
             ),
           },
         };
+        if (!isLoggedIn) {
+          window.localStorage.setItem(ROADMAP_KEY, JSON.stringify(newData));
+        }
+        return newData;
       });
 
       if (isLoggedIn) {

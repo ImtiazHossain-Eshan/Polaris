@@ -13,8 +13,8 @@ export default withAuth({
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/onboard/:path*",
+    // Only protect routes that strictly require an authenticated account.
+    // /dashboard and /onboard work in guest-mode via localStorage.
     "/billing/:path*",
     "/family/:path*",
     "/monitor/:path*",

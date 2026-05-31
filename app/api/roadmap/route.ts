@@ -2,8 +2,11 @@ import { summarizeProfile, type StudentProfile } from "@/lib/profile";
 import { searchDocs } from "@/lib/rag/search";
 import { embedText, generateRoadmap, hasGeminiKey } from "@/lib/llm/gemini";
 import { buildFallbackRoadmap } from "@/lib/fallback-roadmap";
-import { ok, withErrorHandling, parseJson } from "@/lib/api/respond";
-import { requireSession, requirePlan } from "@/lib/authz";
+import { ok, withErrorHandling, parseJson, HttpError } from "@/lib/api/respond";
+import { requireSession } from "@/lib/authz";
+import { authOptions } from "@/lib/auth";
+import { planMeets } from "@/lib/features";
+import type { Plan } from "@/lib/db/collections";
 import { roadmapBodySchema } from "@/lib/validation/schemas";
 import {
   upsertProfile,
@@ -61,17 +64,28 @@ export const GET = withErrorHandling(async () => {
 });
 
 export const POST = withErrorHandling(async (req) => {
-  // Roadmap generation is a Pro feature.
-  const user = await requirePlan("pro");
-  const { profile } = roadmapBodySchema.parse(await parseJson(req));
-  const userId = user.id;
+  // Try to get the session — guest users won't have one.
+  const { getServerSession } = await import("next-auth");
+  const session = await getServerSession(authOptions);
+  const user = session?.user as
+    | { id: string; plan?: string; role?: string }
+    | undefined;
 
-  await upsertProfile(userId, profile);
+  const { profile } = roadmapBodySchema.parse(await parseJson(req));
+
+  // Authenticated users need Pro plan for AI roadmap generation.
+  if (user && !planMeets((user.plan ?? "free") as Plan, "pro")) {
+    throw new HttpError(403, "This feature requires the pro plan. Upgrade to continue.");
+  }
+
+  if (user) {
+    await upsertProfile(user.id, profile);
+  }
 
   // Adaptive replanning (building on completed milestones) is Elite-only.
   let completedTitles: string[] = [];
-  if (user.plan === "elite") {
-    const prev = await getLatestRoadmap(userId);
+  if (user?.plan === "elite") {
+    const prev = await getLatestRoadmap(user.id);
     if (prev) {
       completedTitles = prev.roadmap.milestones
         .filter((m) => m.status === "done")
@@ -102,7 +116,7 @@ export const POST = withErrorHandling(async (req) => {
       retrieved: retrievedMeta,
       source: "fallback" as const,
     };
-    await saveRoadmap(userId, result);
+    if (user) await saveRoadmap(user.id, result);
     return ok(result);
   }
 
@@ -124,7 +138,7 @@ export const POST = withErrorHandling(async (req) => {
       retrieved: retrievedMeta,
       source: "fallback" as const,
     };
-    await saveRoadmap(userId, result);
+    if (user) await saveRoadmap(user.id, result);
     return ok(result);
   }
 
@@ -133,6 +147,6 @@ export const POST = withErrorHandling(async (req) => {
     retrieved: retrievedMeta,
     source: "gemini" as const,
   };
-  await saveRoadmap(userId, result);
+  if (user) await saveRoadmap(user.id, result);
   return ok(result);
 });
