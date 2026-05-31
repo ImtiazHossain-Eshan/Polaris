@@ -18,6 +18,9 @@ const schema = z.object({
   GEMINI_API_KEY: z.string().optional(),
   GOOGLE_API_KEY: z.string().optional(),
 
+  // Comma-separated list of emails that should be treated as admins.
+  ADMIN_EMAILS: z.string().optional(),
+
   // LemonSqueezy (optional — checkout/portal degrade gracefully if absent)
   LEMONSQUEEZY_API_KEY: z.string().optional(),
   LEMONSQUEEZY_STORE_ID: z.string().optional(),
@@ -53,4 +56,14 @@ export function isPaymentsConfigured(): boolean {
       env.LEMONSQUEEZY_VARIANT_PRO &&
       env.LEMONSQUEEZY_VARIANT_ELITE,
   );
+}
+
+/** True if the given email is in the ADMIN_EMAILS allowlist. */
+export function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const list = (env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(email.toLowerCase());
 }

@@ -166,6 +166,17 @@ export async function setUserRole(userId: string, role: UserRole) {
     .updateOne({ _id: new ObjectId(userId) }, { $set: { role } });
 }
 
+/** Update mutable account fields (name / password hash). */
+export async function updateUser(
+  userId: string,
+  fields: Partial<Pick<DbUser, "name" | "password">>,
+) {
+  const db = await getDb();
+  await db
+    .collection<DbUser>("users")
+    .updateOne({ _id: new ObjectId(userId) }, { $set: fields });
+}
+
 /** Find a user by their LemonSqueezy subscription id (for update/cancel webhooks). */
 export async function getUserBySubscriptionId(
   lsSubscriptionId: string,
@@ -174,6 +185,137 @@ export async function getUserBySubscriptionId(
   return db
     .collection<DbUser>("users")
     .findOne({ "subscription.lsSubscriptionId": lsSubscriptionId });
+}
+
+/* ─── Admin ─── */
+
+export type AdminUserRow = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  plan: Plan;
+  createdAt: Date;
+};
+
+export async function listUsers(): Promise<AdminUserRow[]> {
+  const db = await getDb();
+  const users = await db
+    .collection<DbUser>("users")
+    .find({}, { projection: { password: 0 } })
+    .sort({ createdAt: -1 })
+    .toArray();
+  return users.map((u) => ({
+    id: u._id!.toString(),
+    name: u.name,
+    email: u.email,
+    role: u.role ?? "student",
+    plan: u.plan ?? "free",
+    createdAt: u.createdAt,
+  }));
+}
+
+/** Delete a user and all their associated data. */
+export async function deleteUserCascade(userId: string) {
+  const db = await getDb();
+  if (!ObjectId.isValid(userId)) return;
+  await Promise.all([
+    db.collection("users").deleteOne({ _id: new ObjectId(userId) }),
+    db.collection("profiles").deleteMany({ userId }),
+    db.collection("roadmaps").deleteMany({ userId }),
+    db.collection("links").deleteMany({ studentId: userId }),
+  ]);
+}
+
+export async function getPlatformStats() {
+  const db = await getDb();
+  const users = db.collection<DbUser>("users");
+  const [
+    totalUsers,
+    free,
+    pro,
+    elite,
+    students,
+    parents,
+    partners,
+    admins,
+    roadmaps,
+    links,
+    profiles,
+  ] = await Promise.all([
+    users.countDocuments({}),
+    users.countDocuments({ plan: "free" }),
+    users.countDocuments({ plan: "pro" }),
+    users.countDocuments({ plan: "elite" }),
+    users.countDocuments({ role: "student" }),
+    users.countDocuments({ role: "parent" }),
+    users.countDocuments({ role: "partner" }),
+    users.countDocuments({ role: "admin" }),
+    db.collection("roadmaps").countDocuments({}),
+    db.collection("links").countDocuments({}),
+    db.collection("profiles").countDocuments({}),
+  ]);
+  return {
+    totalUsers,
+    plans: { free, pro, elite },
+    roles: { student: students, parent: parents, partner: partners, admin: admins },
+    roadmaps,
+    links,
+    profiles,
+  };
+}
+
+export type AdminRoadmapRow = {
+  id: string;
+  userId: string;
+  userEmail: string;
+  version: number;
+  source: string;
+  milestones: number;
+  done: number;
+  summary: string;
+  createdAt: Date;
+};
+
+export async function listRoadmaps(): Promise<AdminRoadmapRow[]> {
+  const db = await getDb();
+  const roadmaps = await db
+    .collection<DbRoadmap>("roadmaps")
+    .find({})
+    .sort({ createdAt: -1 })
+    .limit(200)
+    .toArray();
+
+  // Resolve emails in one batch.
+  const userIds = [...new Set(roadmaps.map((r) => r.userId))].filter((id) =>
+    ObjectId.isValid(id),
+  );
+  const users = await db
+    .collection<DbUser>("users")
+    .find(
+      { _id: { $in: userIds.map((id) => new ObjectId(id)) } },
+      { projection: { email: 1 } },
+    )
+    .toArray();
+  const emailById = new Map(users.map((u) => [u._id!.toString(), u.email]));
+
+  return roadmaps.map((r) => ({
+    id: r._id!.toString(),
+    userId: r.userId,
+    userEmail: emailById.get(r.userId) ?? "(unknown)",
+    version: r.version,
+    source: r.source,
+    milestones: r.roadmap.milestones.length,
+    done: r.roadmap.milestones.filter((m) => m.status === "done").length,
+    summary: r.roadmap.summary,
+    createdAt: r.createdAt,
+  }));
+}
+
+export async function deleteRoadmap(roadmapId: string) {
+  const db = await getDb();
+  if (!ObjectId.isValid(roadmapId)) return;
+  await db.collection("roadmaps").deleteOne({ _id: new ObjectId(roadmapId) });
 }
 
 /* ─── Parent/partner links ─── */

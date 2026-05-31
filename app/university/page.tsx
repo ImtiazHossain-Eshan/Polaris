@@ -1,10 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { useLang } from "@/lib/i18n/LangProvider";
-import universities from "@/data/universities.json";
 import { cn } from "@/lib/cn";
 
 type Uni = {
@@ -30,7 +30,14 @@ const TIER_LABEL: Record<string, string> = {
 
 export default function UniversityListPage() {
   const { t } = useLang();
-  const list = universities as Uni[];
+  const [list, setList] = useState<Uni[]>([]);
+
+  useEffect(() => {
+    fetch("/api/content/universities")
+      .then((r) => (r.ok ? r.json() : { items: [] }))
+      .then((d) => setList((d.items ?? []) as Uni[]))
+      .catch(() => {});
+  }, []);
 
   return (
     <main className="min-h-screen">

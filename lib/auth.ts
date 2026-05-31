@@ -7,7 +7,13 @@ if (!process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { getDb } from "@/lib/db/mongodb";
-import { getUserById, type Plan, type UserRole } from "@/lib/db/collections";
+import {
+  getUserById,
+  setUserRole,
+  type Plan,
+  type UserRole,
+} from "@/lib/db/collections";
+import { isAdminEmail } from "@/lib/env";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -30,11 +36,18 @@ export const authOptions: NextAuthOptions = {
         const valid = await bcrypt.compare(credentials.password, user.password);
         if (!valid) return null;
 
+        // Auto-promote allowlisted emails to admin (and persist).
+        let role = (user.role as UserRole) ?? "student";
+        if (isAdminEmail(user.email) && role !== "admin") {
+          role = "admin";
+          await setUserRole(user._id.toString(), "admin").catch(() => {});
+        }
+
         return {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
-          role: (user.role as UserRole) ?? "student",
+          role,
           plan: (user.plan as Plan) ?? "free",
         };
       },

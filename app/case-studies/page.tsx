@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { cn } from "@/lib/cn";
-import caseStudies from "@/data/case-studies.json";
 
 type CaseStudy = {
   id: string;
@@ -30,21 +29,33 @@ const TIER_LABELS: Record<string, string> = {
   regional: "Regional",
 };
 
-const COUNTRIES = ["All", ...new Set((caseStudies as CaseStudy[]).map((c) => c.profile.country))];
 const TIERS = ["All", "elite", "top10", "top50", "top100", "top200"];
 
 export default function CaseStudiesPage() {
+  const [caseStudies, setCaseStudies] = useState<CaseStudy[]>([]);
   const [filterCountry, setFilterCountry] = useState("All");
   const [filterTier, setFilterTier] = useState("All");
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  useEffect(() => {
+    fetch("/api/content/case-studies")
+      .then((r) => (r.ok ? r.json() : { items: [] }))
+      .then((d) => setCaseStudies((d.items ?? []) as CaseStudy[]))
+      .catch(() => {});
+  }, []);
+
+  const COUNTRIES = useMemo(
+    () => ["All", ...new Set(caseStudies.map((c) => c.profile.country))],
+    [caseStudies],
+  );
+
   const filtered = useMemo(() => {
-    return (caseStudies as CaseStudy[]).filter((c) => {
+    return caseStudies.filter((c) => {
       if (filterCountry !== "All" && c.profile.country !== filterCountry) return false;
       if (filterTier !== "All" && c.profile.tier !== filterTier) return false;
       return true;
     });
-  }, [filterCountry, filterTier]);
+  }, [caseStudies, filterCountry, filterTier]);
 
   return (
     <main className="min-h-screen">

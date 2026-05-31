@@ -1,5 +1,5 @@
 import { scoreProbability, type ProbabilityInputs, type UniversityForModel } from "@/lib/ml/probability";
-import universities from "@/data/universities.json";
+import { getUniversities } from "@/lib/content";
 import { ok, withErrorHandling, parseJson, HttpError } from "@/lib/api/respond";
 
 export const runtime = "nodejs";
@@ -22,7 +22,8 @@ export const POST = withErrorHandling(async (req) => {
     throw new HttpError(400, "Missing universityId or inputs");
   }
 
-  const uni = (universities as UniversityRaw[]).find((u) => u.id === universityId);
+  const universities = (await getUniversities()) as unknown as UniversityRaw[];
+  const uni = universities.find((u) => u.id === universityId);
   if (!uni) {
     throw new HttpError(404, "Unknown university");
   }

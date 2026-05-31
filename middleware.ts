@@ -19,5 +19,7 @@ export const config = {
     "/billing/:path*",
     "/family/:path*",
     "/monitor/:path*",
+    "/account/:path*",
+    "/admin/:path*",
   ],
 };

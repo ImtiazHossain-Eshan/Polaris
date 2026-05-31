@@ -33,6 +33,9 @@ export function Nav() {
           {session && isViewer && (
             <Link href="/monitor" className="hover:text-ink transition">Monitor</Link>
           )}
+          {role === "admin" && (
+            <Link href="/admin" className="font-medium text-nova-500 hover:text-nova-600 transition">Admin</Link>
+          )}
         </nav>
         <div className="flex items-center gap-2">
           <div className="rounded-full border border-polaris-200 bg-white p-0.5 text-xs flex">
@@ -61,9 +64,9 @@ export function Nav() {
           ) : session ? (
             <div className="flex items-center gap-2">
               <Link
-                href="/billing"
+                href="/account"
                 className="hidden sm:flex items-center gap-1.5 rounded-full border border-polaris-200 bg-white px-3 py-1.5 text-sm hover:border-polaris-400 transition-colors duration-150"
-                title="Manage billing"
+                title="Your profile & account"
               >
                 <UserIcon />
                 <span className="text-ink-dim max-w-[110px] truncate">

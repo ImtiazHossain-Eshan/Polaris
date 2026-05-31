@@ -6,7 +6,6 @@ import { use } from "react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { useLang } from "@/lib/i18n/LangProvider";
-import universities from "@/data/universities.json";
 import { cn } from "@/lib/cn";
 import {
   profileToInputs,
@@ -43,13 +42,23 @@ export default function UniversityDetailPage({
   const { t } = useLang();
   const { id } = use(params);
 
-  const uni = (universities as Uni[]).find((u) => u.id === id);
+  const [unis, setUnis] = useState<Uni[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const uni = useMemo(() => unis.find((u) => u.id === id), [unis, id]);
   const [inputs, setInputs] = useState<ProbabilityInputs>({
     gpa: 3.7,
     testPercentile: 85,
     ecCount: 4,
     research: 2,
   });
+
+  useEffect(() => {
+    fetch("/api/content/universities")
+      .then((r) => (r.ok ? r.json() : { items: [] }))
+      .then((d) => setUnis((d.items ?? []) as Uni[]))
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, []);
 
   useEffect(() => {
     try {
@@ -69,6 +78,17 @@ export default function UniversityDetailPage({
       acceptanceRate: uni.acceptanceRate,
     });
   }, [uni, inputs]);
+
+  if (!loaded) {
+    return (
+      <main className="min-h-screen">
+        <Nav />
+        <section className="mx-auto max-w-3xl px-6 py-20 text-center">
+          <p className="text-ink-dim">Loading…</p>
+        </section>
+      </main>
+    );
+  }
 
   if (!uni) {
     return (

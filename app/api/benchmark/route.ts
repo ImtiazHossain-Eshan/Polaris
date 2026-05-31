@@ -1,5 +1,5 @@
 import type { StudentProfile } from "@/lib/profile";
-import caseStudies from "@/data/case-studies.json";
+import { getCaseStudies } from "@/lib/content";
 import { ok, withErrorHandling, parseJson } from "@/lib/api/respond";
 import { requirePlan } from "@/lib/authz";
 import { benchmarkBodySchema } from "@/lib/validation/schemas";
@@ -47,7 +47,8 @@ export const POST = withErrorHandling(async (req) => {
     profile: StudentProfile;
   };
 
-  const scored = (caseStudies as CaseStudy[])
+  const caseStudies = (await getCaseStudies()) as unknown as CaseStudy[];
+  const scored = caseStudies
     .map((cs) => ({ ...cs, matchScore: matchScore(profile, cs) }))
     .sort((a, b) => b.matchScore - a.matchScore);
 

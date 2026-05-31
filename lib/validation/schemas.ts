@@ -62,3 +62,15 @@ export const linkAcceptSchema = z.object({
 export const benchmarkBodySchema = z.object({
   profile: studentProfileSchema,
 });
+
+export const accountUpdateSchema = z.object({
+  name: z.string().min(1).max(120).optional(),
+  currentPassword: z.string().optional(),
+  newPassword: z.string().min(8, "New password must be at least 8 characters").optional(),
+});
+
+export const adminUserUpdateSchema = z.object({
+  userId: z.string().min(1),
+  role: z.enum(["student", "parent", "partner", "admin"]).optional(),
+  plan: z.enum(["free", "pro", "elite"]).optional(),
+});
