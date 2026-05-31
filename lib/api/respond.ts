@@ -41,8 +41,7 @@ export function withErrorHandling(handler: Handler): Handler {
         return fail(400, msg);
       }
       console.error("[api] unhandled error:", err);
-      const message = err instanceof Error ? err.message : String(err);
-      return fail(500, `Internal error: ${message}`);
+      return fail(500, "Something went wrong");
     }
   };
 }
