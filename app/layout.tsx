@@ -30,7 +30,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`starfield antialiased ${inter.variable} ${libre.variable} font-sans`}>
+      <body
+        suppressHydrationWarning
+        className={`starfield antialiased ${inter.variable} ${libre.variable} font-sans`}
+      >
         <SessionProvider>
           <LangProvider>{children}</LangProvider>
         </SessionProvider>
