@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { scoreProbability, type ProbabilityInputs, type UniversityForModel } from "@/lib/ml/probability";
 import universities from "@/data/universities.json";
+import { ok, withErrorHandling, parseJson, HttpError } from "@/lib/api/respond";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,22 +11,20 @@ type UniversityRaw = {
   acceptanceRate: number;
 };
 
-export async function POST(req: Request) {
-  let body: { universityId?: string; inputs?: ProbabilityInputs };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+export const POST = withErrorHandling(async (req) => {
+  const body = (await parseJson(req)) as {
+    universityId?: string;
+    inputs?: ProbabilityInputs;
+  };
 
   const { universityId, inputs } = body;
   if (!universityId || !inputs) {
-    return NextResponse.json({ error: "Missing universityId or inputs" }, { status: 400 });
+    throw new HttpError(400, "Missing universityId or inputs");
   }
 
   const uni = (universities as UniversityRaw[]).find((u) => u.id === universityId);
   if (!uni) {
-    return NextResponse.json({ error: "Unknown university" }, { status: 404 });
+    throw new HttpError(404, "Unknown university");
   }
 
   const result = scoreProbability(inputs, {
@@ -35,5 +33,5 @@ export async function POST(req: Request) {
     acceptanceRate: uni.acceptanceRate,
   });
 
-  return NextResponse.json(result);
-}
+  return ok(result);
+});

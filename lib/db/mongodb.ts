@@ -1,4 +1,5 @@
 import { MongoClient } from "mongodb";
+import { ensureIndexes } from "./indexes";
 
 const uri = process.env.MONGODB_URI!;
 
@@ -24,5 +25,7 @@ export default clientPromise;
 
 export async function getDb() {
   const client = await clientPromise;
-  return client.db("polaris");
+  const db = client.db("polaris");
+  await ensureIndexes(db);
+  return db;
 }

@@ -3,11 +3,15 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useLang } from "@/lib/i18n/LangProvider";
+import { PLAN_LABELS } from "@/lib/features";
 import { cn } from "@/lib/cn";
 
 export function Nav() {
   const { t, lang, setLang } = useLang();
   const { data: session, status } = useSession();
+  const role = session?.user?.role ?? "student";
+  const plan = session?.user?.plan ?? "free";
+  const isViewer = role === "parent" || role === "partner";
 
   return (
     <header className="sticky top-0 z-40 w-full">
@@ -16,10 +20,19 @@ export function Nav() {
           <CompassLogo />
           <span className="font-serif font-bold tracking-tight text-ink">Polaris</span>
         </Link>
-        <nav className="hidden md:flex items-center gap-7 text-sm text-ink-dim">
+        <nav className="hidden md:flex items-center gap-6 text-sm text-ink-dim">
           <a href="/#how" className="hover:text-ink transition">{t.nav.howItWorks}</a>
           <a href="/#pricing" className="hover:text-ink transition">{t.nav.pricing}</a>
-          <Link href="/dashboard" className="hover:text-ink transition">Dashboard</Link>
+          <Link href="/case-studies" className="hover:text-ink transition">Case studies</Link>
+          {session && !isViewer && (
+            <Link href="/dashboard" className="hover:text-ink transition">Dashboard</Link>
+          )}
+          {session && !isViewer && (
+            <Link href="/family" className="hover:text-ink transition">Family</Link>
+          )}
+          {session && isViewer && (
+            <Link href="/monitor" className="hover:text-ink transition">Monitor</Link>
+          )}
         </nav>
         <div className="flex items-center gap-2">
           <div className="rounded-full border border-polaris-200 bg-white p-0.5 text-xs flex">
@@ -47,12 +60,17 @@ export function Nav() {
             <div className="h-9 w-20" />
           ) : session ? (
             <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-polaris-200 bg-white px-3 py-1.5 text-sm">
+              <Link
+                href="/billing"
+                className="hidden sm:flex items-center gap-1.5 rounded-full border border-polaris-200 bg-white px-3 py-1.5 text-sm hover:border-polaris-400 transition-colors duration-150"
+                title="Manage billing"
+              >
                 <UserIcon />
-                <span className="text-ink-dim max-w-[120px] truncate">
+                <span className="text-ink-dim max-w-[110px] truncate">
                   {session.user?.name || session.user?.email}
                 </span>
-              </div>
+                <PlanBadge plan={plan} />
+              </Link>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
                 className="rounded-full border border-polaris-300 bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-polaris-50 hover:border-polaris-400 transition-colors duration-150"
@@ -109,6 +127,24 @@ export function CompassLogo({ className }: { className?: string }) {
 }
 
 export const StarLogo = CompassLogo;
+
+function PlanBadge({ plan }: { plan: "free" | "pro" | "elite" }) {
+  const style = {
+    free: "bg-polaris-100 text-ink-dim border-polaris-200",
+    pro: "bg-polaris-500/15 text-polaris-600 border-polaris-400/40",
+    elite: "bg-aurora-500/15 text-aurora-500 border-aurora-400/40",
+  }[plan];
+  return (
+    <span
+      className={cn(
+        "text-[10px] font-semibold uppercase tracking-wide rounded-full border px-1.5 py-0.5",
+        style,
+      )}
+    >
+      {PLAN_LABELS[plan]}
+    </span>
+  );
+}
 
 function ArrowRight() {
   return (

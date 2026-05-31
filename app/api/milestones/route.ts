@@ -1,33 +1,23 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { updateMilestoneStatus, setMilestoneDeadline, type MilestoneStatus } from "@/lib/db/collections";
+import { ok, withErrorHandling, parseJson } from "@/lib/api/respond";
+import { requirePlan } from "@/lib/authz";
+import { milestonePatchSchema } from "@/lib/validation/schemas";
+import { updateMilestoneStatus, setMilestoneDeadline } from "@/lib/db/collections";
 
 export const dynamic = "force-dynamic";
 
-export async function PATCH(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const userId = (session.user as { id: string }).id;
-  const { milestoneId, status, deadline } = await req.json();
-
-  if (!milestoneId) {
-    return NextResponse.json({ error: "Missing milestoneId" }, { status: 400 });
-  }
+export const PATCH = withErrorHandling(async (req) => {
+  // Milestone tracking is a Pro feature.
+  const user = await requirePlan("pro");
+  const { milestoneId, status, deadline } = milestonePatchSchema.parse(
+    await parseJson(req),
+  );
 
   if (status) {
-    const valid: MilestoneStatus[] = ["pending", "in-progress", "done"];
-    if (!valid.includes(status)) {
-      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-    }
-    await updateMilestoneStatus(userId, milestoneId, status);
+    await updateMilestoneStatus(user.id, milestoneId, status);
   }
-
   if (deadline !== undefined) {
-    await setMilestoneDeadline(userId, milestoneId, deadline);
+    await setMilestoneDeadline(user.id, milestoneId, deadline);
   }
 
-  return NextResponse.json({ ok: true });
-}
+  return ok({ ok: true });
+});

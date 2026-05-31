@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { summarizeProfile, type StudentProfile } from "@/lib/profile";
 import { searchDocs } from "@/lib/rag/search";
 import { embedText, generateRoadmap, hasGeminiKey } from "@/lib/llm/gemini";
 import { buildFallbackRoadmap } from "@/lib/fallback-roadmap";
+import { ok, withErrorHandling, parseJson } from "@/lib/api/respond";
+import { requireSession, requirePlan } from "@/lib/authz";
+import { roadmapBodySchema } from "@/lib/validation/schemas";
 import {
   upsertProfile,
   saveRoadmap,
@@ -51,46 +51,26 @@ ${completedTitles.map((t) => `- ${t}`).join("\n")}`;
   return prompt;
 }
 
-async function getUserId(): Promise<string | null> {
-  try {
-    const session = await getServerSession(authOptions);
-    return (session?.user as { id?: string })?.id ?? null;
-  } catch {
-    return null;
-  }
-}
-
-export async function GET() {
-  const userId = await getUserId();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const roadmap = await getLatestRoadmap(userId);
+export const GET = withErrorHandling(async () => {
+  const user = await requireSession();
+  const roadmap = await getLatestRoadmap(user.id);
   if (!roadmap) {
-    return NextResponse.json({ roadmap: null });
+    return ok({ roadmap: null });
   }
-  return NextResponse.json(roadmap);
-}
+  return ok(roadmap);
+});
 
-export async function POST(req: Request) {
-  let body: { profile?: StudentProfile };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+export const POST = withErrorHandling(async (req) => {
+  // Roadmap generation is a Pro feature.
+  const user = await requirePlan("pro");
+  const { profile } = roadmapBodySchema.parse(await parseJson(req));
+  const userId = user.id;
 
-  const profile = body.profile;
-  if (!profile) {
-    return NextResponse.json({ error: "Missing profile" }, { status: 400 });
-  }
+  await upsertProfile(userId, profile);
 
-  const userId = await getUserId();
-
-  // Get completed milestones from previous roadmap for adaptive replanning
+  // Adaptive replanning (building on completed milestones) is Elite-only.
   let completedTitles: string[] = [];
-  if (userId) {
-    await upsertProfile(userId, profile);
+  if (user.plan === "elite") {
     const prev = await getLatestRoadmap(userId);
     if (prev) {
       completedTitles = prev.roadmap.milestones
@@ -122,10 +102,8 @@ export async function POST(req: Request) {
       retrieved: retrievedMeta,
       source: "fallback" as const,
     };
-    if (userId) {
-      await saveRoadmap(userId, result);
-    }
-    return NextResponse.json(result);
+    await saveRoadmap(userId, result);
+    return ok(result);
   }
 
   const userPrompt = buildUserPrompt(profile, hits, completedTitles);
@@ -146,10 +124,8 @@ export async function POST(req: Request) {
       retrieved: retrievedMeta,
       source: "fallback" as const,
     };
-    if (userId) {
-      await saveRoadmap(userId, result);
-    }
-    return NextResponse.json(result);
+    await saveRoadmap(userId, result);
+    return ok(result);
   }
 
   const result = {
@@ -157,8 +133,6 @@ export async function POST(req: Request) {
     retrieved: retrievedMeta,
     source: "gemini" as const,
   };
-  if (userId) {
-    await saveRoadmap(userId, result);
-  }
-  return NextResponse.json(result);
-}
+  await saveRoadmap(userId, result);
+  return ok(result);
+});

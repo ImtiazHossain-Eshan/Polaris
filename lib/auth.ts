@@ -7,6 +7,7 @@ if (!process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { getDb } from "@/lib/db/mongodb";
+import { getUserById, type Plan, type UserRole } from "@/lib/db/collections";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -33,6 +34,8 @@ export const authOptions: NextAuthOptions = {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
+          role: (user.role as UserRole) ?? "student",
+          plan: (user.plan as Plan) ?? "free",
         };
       },
     }),
@@ -44,14 +47,29 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
+      // On sign-in, seed the token from the authorized user.
       if (user) {
-        token.id = user.id;
+        token.id = (user as { id: string }).id;
+        token.role = (user as { role?: UserRole }).role ?? "student";
+        token.plan = (user as { plan?: Plan }).plan ?? "free";
+        return token;
+      }
+      // On subsequent requests, refresh role/plan from the DB so upgrades
+      // (applied via webhook) reflect without requiring a re-login.
+      if (token.id) {
+        const fresh = await getUserById(token.id as string).catch(() => null);
+        if (fresh) {
+          token.role = fresh.role ?? "student";
+          token.plan = fresh.plan ?? "free";
+        }
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id?: string }).id = token.id as string;
+        session.user.id = token.id as string;
+        session.user.role = (token.role as UserRole) ?? "student";
+        session.user.plan = (token.plan as Plan) ?? "free";
       }
       return session;
     },

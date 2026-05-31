@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { useLang } from "@/lib/i18n/LangProvider";
+import { usePlan, UpgradeCard } from "@/components/PlanGate";
 import { cn } from "@/lib/cn";
 import {
   PROFILE_KEY,
@@ -72,6 +73,7 @@ const PRIORITY_LABELS: Record<RoadmapMilestone["priority"], string> = {
 export default function DashboardPage() {
   const { t } = useLang();
   const { data: session } = useSession();
+  const { plan, can } = usePlan();
   const [data, setData] = useState<Stored | null>(null);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [regenerating, setRegenerating] = useState(false);
@@ -112,17 +114,18 @@ export default function DashboardPage() {
   }, [isLoggedIn]);
 
   useEffect(() => {
-    if (!profile || benchFetched.current) return;
+    // Benchmarking is a Pro feature — skip the call for free users.
+    if (!profile || benchFetched.current || !can("benchmark")) return;
     benchFetched.current = true;
     fetch("/api/benchmark", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ profile }),
     })
-      .then((r) => r.json())
-      .then(setBenchmark)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setBenchmark(d))
       .catch(() => {});
-  }, [profile]);
+  }, [profile, can]);
 
   const grouped = useMemo(() => {
     if (!data) return [];
@@ -257,7 +260,15 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {!data ? (
+        {plan === "free" ? (
+          <div className="mt-12">
+            <UpgradeCard
+              tier="pro"
+              title="Your AI roadmap is a Pro feature"
+              description="Upgrade to Polaris Pro to generate a personalized, AI-built academic roadmap, track milestones, benchmark against accepted students, and more."
+            />
+          </div>
+        ) : !data ? (
           <EmptyState />
         ) : (
           <>

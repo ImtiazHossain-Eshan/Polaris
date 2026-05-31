@@ -1,30 +1,20 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { ok, withErrorHandling, parseJson } from "@/lib/api/respond";
+import { requireSession } from "@/lib/authz";
+import { studentProfileSchema } from "@/lib/validation/schemas";
 import { upsertProfile, getProfile } from "@/lib/db/collections";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const userId = (session.user as { id: string }).id;
-  const profile = await getProfile(userId);
-  return NextResponse.json({ profile });
-}
+export const GET = withErrorHandling(async () => {
+  const user = await requireSession();
+  const profile = await getProfile(user.id);
+  return ok({ profile });
+});
 
-export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const userId = (session.user as { id: string }).id;
-  const { profile } = await req.json();
-  if (!profile) {
-    return NextResponse.json({ error: "Missing profile" }, { status: 400 });
-  }
-  await upsertProfile(userId, profile);
-  return NextResponse.json({ ok: true });
-}
+export const POST = withErrorHandling(async (req) => {
+  const user = await requireSession();
+  const body = (await parseJson(req)) as { profile?: unknown };
+  const profile = studentProfileSchema.parse(body.profile);
+  await upsertProfile(user.id, profile);
+  return ok({ ok: true });
+});

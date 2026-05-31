@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { useLang } from "@/lib/i18n/LangProvider";
+import { usePlan, UpgradeCard } from "@/components/PlanGate";
 import { cn } from "@/lib/cn";
 import {
   type StudentProfile,
@@ -42,6 +43,7 @@ export default function OnboardPage() {
   const { t } = useLang();
   const router = useRouter();
   const { data: session } = useSession();
+  const { plan } = usePlan();
   const isLoggedIn = !!session?.user;
 
   const [grade, setGrade] = useState<GradeLevel>("late-hs");
@@ -93,6 +95,26 @@ export default function OnboardPage() {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setSubmitting(false);
     }
+  }
+
+  // Roadmap generation (onboarding) is a Pro feature.
+  if (isLoggedIn && plan === "free") {
+    return (
+      <main className="min-h-screen">
+        <Nav />
+        <section className="mx-auto max-w-3xl px-4 sm:px-6 py-16 sm:py-24">
+          <h1 className="text-3xl sm:text-4xl font-serif font-bold tracking-tight text-center mb-8">
+            {t.onboard.title}
+          </h1>
+          <UpgradeCard
+            tier="pro"
+            title="Build your roadmap with Pro"
+            description="The AI intake and personalized roadmap are part of Polaris Pro. Upgrade to answer a few questions and get your reverse-engineered admissions plan."
+          />
+        </section>
+        <Footer />
+      </main>
+    );
   }
 
   return (

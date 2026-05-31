@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { useLang } from "@/lib/i18n/LangProvider";
+import { startCheckout } from "@/components/PlanGate";
 import { cn } from "@/lib/cn";
 
 export default function HomePage() {
@@ -136,14 +140,15 @@ export default function HomePage() {
         </h2>
         <div className="mt-10 sm:mt-14 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
           <PricingCard
+            tier="free"
             name={t.pricing.free.name}
             price={t.pricing.free.price}
             tagline={t.pricing.free.tagline}
             features={t.pricing.free.features as unknown as string[]}
             cta={t.pricing.ctaFree}
-            href="/onboard"
           />
           <PricingCard
+            tier="pro"
             featured
             badge={t.pricing.pro.badge}
             name={t.pricing.pro.name}
@@ -151,16 +156,15 @@ export default function HomePage() {
             tagline={t.pricing.pro.tagline}
             features={t.pricing.pro.features as unknown as string[]}
             cta={t.pricing.ctaPro}
-            href="/onboard"
             priceSuffix={t.pricing.monthly}
           />
           <PricingCard
+            tier="elite"
             name={t.pricing.elite.name}
             price={t.pricing.elite.price}
             tagline={t.pricing.elite.tagline}
             features={t.pricing.elite.features as unknown as string[]}
             cta={t.pricing.ctaElite}
-            href="/onboard"
             priceSuffix={t.pricing.monthly}
           />
         </div>
@@ -235,26 +239,58 @@ function StepCard({ num, title, body, accent }: { num: string; title: string; bo
 }
 
 function PricingCard({
+  tier,
   name,
   price,
   tagline,
   features,
   cta,
-  href,
   featured,
   badge,
   priceSuffix,
 }: {
+  tier: "free" | "pro" | "elite";
   name: string;
   price: string;
   tagline: string;
   features: string[];
   cta: string;
-  href: string;
   featured?: boolean;
   badge?: string;
   priceSuffix?: string;
 }) {
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [loading, setLoading] = useState(false);
+
+  async function handleClick() {
+    // Free tier: go straight into the product (sign up if needed).
+    if (tier === "free") {
+      router.push(session ? "/dashboard" : "/signup");
+      return;
+    }
+    // Paid tier: must be signed in, then launch checkout.
+    if (!session) {
+      router.push(`/signup?next=upgrade&tier=${tier}`);
+      return;
+    }
+    setLoading(true);
+    try {
+      await startCheckout(tier);
+    } catch {
+      setLoading(false);
+      router.push("/dashboard");
+    }
+  }
+
+  const btnClass = cn(
+    "mt-6 sm:mt-7 rounded-full px-5 py-3 text-sm font-semibold text-center transition-colors duration-150",
+    featured
+      ? "bg-polaris-500 text-white hover:bg-polaris-600 active:bg-polaris-700"
+      : "border border-polaris-300 text-ink bg-white hover:bg-polaris-50 hover:border-polaris-400",
+    loading && "opacity-70 cursor-wait",
+  );
+
   return (
     <div
       className={cn(
@@ -283,17 +319,9 @@ function PricingCard({
           </li>
         ))}
       </ul>
-      <Link
-        href={href}
-        className={cn(
-          "mt-6 sm:mt-7 rounded-full px-5 py-3 text-sm font-semibold text-center transition-all duration-200 active:scale-[0.97]",
-          featured
-            ? "bg-polaris-500 text-white hover:bg-polaris-600 active:bg-polaris-700"
-            : "border border-polaris-300 text-ink bg-white hover:bg-polaris-50 hover:border-polaris-400"
-        )}
-      >
-        {cta}
-      </Link>
+      <button onClick={handleClick} disabled={loading} className={btnClass}>
+        {loading ? "Redirecting…" : cta}
+      </button>
     </div>
   );
 }

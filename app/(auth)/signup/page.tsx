@@ -6,11 +6,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CompassLogo } from "@/components/Nav";
 
+type Role = "student" | "parent" | "partner";
+
 export default function SignUpPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<Role>("student");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +26,7 @@ export default function SignUpPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, role }),
       });
 
       if (!res.ok) {
@@ -45,7 +48,8 @@ export default function SignUpPage() {
         return;
       }
 
-      router.push("/dashboard");
+      // Parents/partners go to monitoring; students to their dashboard.
+      router.push(role === "student" ? "/dashboard" : "/monitor");
       router.refresh();
     } catch {
       setError("Something went wrong");
@@ -66,6 +70,29 @@ export default function SignUpPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">
+              I am a…
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {(["student", "parent", "partner"] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRole(r)}
+                  className={
+                    "rounded-xl border px-2 py-2 text-sm capitalize transition-colors duration-150 " +
+                    (role === r
+                      ? "bg-polaris-100 border-polaris-400 text-ink"
+                      : "bg-white border-polaris-200 text-ink-dim hover:border-polaris-300")
+                  }
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-ink mb-1.5">
               Full name

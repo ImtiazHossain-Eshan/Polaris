@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
 import type { StudentProfile } from "@/lib/profile";
 import caseStudies from "@/data/case-studies.json";
+import { ok, withErrorHandling, parseJson } from "@/lib/api/respond";
+import { requirePlan } from "@/lib/authz";
+import { benchmarkBodySchema } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -38,11 +40,12 @@ function matchScore(profile: StudentProfile, cs: CaseStudy): number {
   return score;
 }
 
-export async function POST(req: Request) {
-  const { profile } = await req.json() as { profile: StudentProfile };
-  if (!profile) {
-    return NextResponse.json({ error: "Missing profile" }, { status: 400 });
-  }
+export const POST = withErrorHandling(async (req) => {
+  // Benchmarking is a Pro feature.
+  await requirePlan("pro");
+  const { profile } = benchmarkBodySchema.parse(await parseJson(req)) as {
+    profile: StudentProfile;
+  };
 
   const scored = (caseStudies as CaseStudy[])
     .map((cs) => ({ ...cs, matchScore: matchScore(profile, cs) }))
@@ -99,7 +102,7 @@ export async function POST(req: Request) {
     items: [avgGpa.toFixed(2)],
   });
 
-  return NextResponse.json({
+  return ok({
     topMatches: topMatches.map(({ id, title, profile: p, whatWorked, tags, matchScore: ms }) => ({
       id,
       title,
@@ -110,4 +113,4 @@ export async function POST(req: Request) {
     })),
     insights,
   });
-}
+});
