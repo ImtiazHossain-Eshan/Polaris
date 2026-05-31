@@ -19,7 +19,7 @@ export const POST = withErrorHandling(async (req) => {
     throw new HttpError(409, "An account with this email already exists");
   }
 
-  const hashed = await bcrypt.hash(password, 12);
+  const hashed = await bcrypt.hash(password, 10);
 
   const user: DbUser = {
     name,

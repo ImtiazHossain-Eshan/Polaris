@@ -52,16 +52,21 @@ export const authOptions: NextAuthOptions = {
         token.id = (user as { id: string }).id;
         token.role = (user as { role?: UserRole }).role ?? "student";
         token.plan = (user as { plan?: Plan }).plan ?? "free";
+        token.refreshedAt = Date.now();
         return token;
       }
-      // On subsequent requests, refresh role/plan from the DB so upgrades
-      // (applied via webhook) reflect without requiring a re-login.
-      if (token.id) {
+      // On subsequent requests, refresh role/plan from the DB at most once
+      // every 5 minutes so plan upgrades (via webhook) reflect without a
+      // re-login, but we don't slam MongoDB on every single page load.
+      const FIVE_MINUTES = 5 * 60 * 1000;
+      const lastRefresh = (token.refreshedAt as number) ?? 0;
+      if (token.id && Date.now() - lastRefresh > FIVE_MINUTES) {
         const fresh = await getUserById(token.id as string).catch(() => null);
         if (fresh) {
           token.role = fresh.role ?? "student";
           token.plan = fresh.plan ?? "free";
         }
+        token.refreshedAt = Date.now();
       }
       return token;
     },
