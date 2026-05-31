@@ -18,20 +18,27 @@ export default function SignInPage() {
     setError("");
     setLoading(true);
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-    if (res?.error) {
-      setError("Invalid email or password");
+      if (res?.error) {
+        setError("Invalid email or password");
+        setLoading(false);
+        return;
+      }
+
+      // Force the Next.js router to pick up the new session cookie
+      // before navigating to the middleware-protected dashboard.
+      router.refresh();
+      router.push("/dashboard");
+    } catch {
+      setError("Something went wrong. Please try again.");
       setLoading(false);
-      return;
     }
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (
