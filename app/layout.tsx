@@ -3,6 +3,7 @@ import { Inter, Libre_Baskerville } from "next/font/google";
 import "./globals.css";
 import { LangProvider } from "@/lib/i18n/LangProvider";
 import { SessionProvider } from "@/components/SessionProvider";
+import { SmoothScroll } from "@/lib/animations/SmoothScroll";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -35,7 +36,9 @@ export default function RootLayout({
         className={`starfield antialiased ${inter.variable} ${libre.variable} font-sans`}
       >
         <SessionProvider>
-          <LangProvider>{children}</LangProvider>
+          <SmoothScroll>
+            <LangProvider>{children}</LangProvider>
+          </SmoothScroll>
         </SessionProvider>
       </body>
     </html>
