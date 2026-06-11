@@ -26,5 +26,10 @@ export default async function RoadmapPage() {
   const user = await requireSession();
   const profile = await getProfile(user.id);
   const defaultLevel = GRADE_TO_LEVEL[profile?.grade ?? "late-hs"] ?? "hsc";
-  return <RoadmapPageClient defaultLevel={defaultLevel} />;
+  // Prefill the setup flow from any saved profile so returning users never
+  // re-answer questions they already answered (single source of truth).
+  const initialProfile = profile
+    ? { country: profile.country, degree: profile.degree, targetTier: profile.targetTier }
+    : null;
+  return <RoadmapPageClient defaultLevel={defaultLevel} initialProfile={initialProfile} />;
 }

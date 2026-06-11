@@ -92,7 +92,7 @@ export function PathSwitcher({
           ))}
           <div className="h-px bg-polaris-500/10 my-1.5"/>
           <Link
-            href="/onboard"
+            href="/roadmap"
             className="w-full text-left rounded-lg px-2.5 py-2 hover:bg-paper-soft flex items-center gap-2 text-polaris-500 text-[13px] font-medium"
           >
             <Plus/> Create new path…

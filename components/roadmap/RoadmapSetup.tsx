@@ -13,6 +13,31 @@ import {
   EDUCATION_LEVELS, EDUCATION_LEVEL_LABELS, suggestTimelineMode,
   type EducationLevel, type TimelineMode, type RoadmapConfig,
 } from "@/lib/roadmap/types";
+import type { Country, Degree, Tier } from "@/lib/profile";
+
+/** Profile answers collected during setup — saved server-side with the
+ *  roadmap so onboarding and roadmap share one source of truth. */
+export type ProfileSeed = {
+  country: Country;
+  degree: Degree;
+  targetTier: Tier;
+};
+
+export type SetupInitialProfile = Partial<ProfileSeed> | null;
+
+const COUNTRIES: Country[] = ["Bangladesh", "India", "Pakistan", "Nepal", "Other South Asia", "Other"];
+const DEGREES: Array<{ v: Degree; label: string }> = [
+  { v: "undergrad", label: "Bachelor's" },
+  { v: "masters", label: "Master's" },
+  { v: "phd", label: "PhD" },
+  { v: "undecided", label: "Not sure yet" },
+];
+const TIERS: Array<{ v: Tier; label: string; hint: string }> = [
+  { v: "elite", label: "Elite", hint: "Ivy / Oxbridge tier" },
+  { v: "top50", label: "Top 50", hint: "World top 50" },
+  { v: "top200", label: "Top 200", hint: "Strong global" },
+  { v: "regional", label: "Regional", hint: "Best near home" },
+];
 
 const DURATIONS: Array<{ days: number; label: string; hint: string }> = [
   { days: 15, label: "15 days", hint: "Sprint" },
@@ -30,16 +55,20 @@ const EXAM_LABELS: Record<(typeof EXAMS)[number], string> = {
 };
 
 export function RoadmapSetup({
-  defaultLevel, onGenerate, busy, error,
+  defaultLevel, initialProfile, onGenerate, busy, error,
 }: {
   defaultLevel: EducationLevel;
-  onGenerate: (config: RoadmapConfig) => void;
+  initialProfile?: SetupInitialProfile;
+  onGenerate: (config: RoadmapConfig, seed: ProfileSeed) => void;
   busy: boolean;
   error: string | null;
 }) {
   const [step, setStep] = useState(0);
   const [level, setLevel] = useState<EducationLevel>(defaultLevel);
   const [currentYear, setCurrentYear] = useState("");
+  const [country, setCountry] = useState<Country>(initialProfile?.country ?? "Bangladesh");
+  const [degree, setDegree] = useState<Degree>(initialProfile?.degree ?? "undergrad");
+  const [tier, setTier] = useState<Tier>(initialProfile?.targetTier ?? "top200");
   const [targetGoal, setTargetGoal] = useState("");
   const [academicTarget, setAcademicTarget] = useState("");
   const [exams, setExams] = useState<Array<(typeof EXAMS)[number]>>([]);
@@ -69,18 +98,21 @@ export function RoadmapSetup({
     const ielts = parseFloat(ieltsScore);
     if (Number.isFinite(ielts) && ielts >= 1) currentScores["ielts-overall"] = ielts;
 
-    onGenerate({
-      educationLevel: level,
-      currentYear: currentYear.trim() || undefined,
-      targetGoal: targetGoal.trim(),
-      durationDays,
-      timelineMode: resolvedMode,
-      exams,
-      availableHoursPerWeek: hours,
-      weakAreas: weakAreas.trim() || undefined,
-      academicTarget: academicTarget.trim() || undefined,
-      ...(Object.keys(currentScores).length ? { currentScores } : {}),
-    });
+    onGenerate(
+      {
+        educationLevel: level,
+        currentYear: currentYear.trim() || undefined,
+        targetGoal: targetGoal.trim(),
+        durationDays,
+        timelineMode: resolvedMode,
+        exams,
+        availableHoursPerWeek: hours,
+        weakAreas: weakAreas.trim() || undefined,
+        academicTarget: academicTarget.trim() || undefined,
+        ...(Object.keys(currentScores).length ? { currentScores } : {}),
+      },
+      { country, degree, targetTier: tier },
+    );
   }
 
   const steps = ["Your level", "The mission", "Time & reality"];
@@ -88,12 +120,13 @@ export function RoadmapSetup({
   return (
     <div className="max-w-[680px] mx-auto px-6 py-10">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
-        <div className="text-[10.5px] uppercase tracking-[0.22em] text-ink-muted font-medium mb-1.5">Build your roadmap</div>
+        <div className="text-[10.5px] uppercase tracking-[0.22em] text-ink-muted font-medium mb-1.5">Welcome to Polaris</div>
         <h1 className="font-serif text-[32px] leading-[1.05] font-bold tracking-tight text-ink">
-          Let&apos;s grow your <span className="grad-text">tree</span>
+          Let&apos;s build your <span className="grad-text">roadmap</span>
         </h1>
         <p className="text-[13.5px] text-ink-dim mt-2 leading-relaxed">
-          Three quick steps. The Strategist designs a plan that fits your level, your goal, and the time you actually have.
+          Answer a few questions so Polaris can create your personalized plan —
+          this is the only setup; everything else adapts from here.
         </p>
 
         {/* Stepper */}
@@ -156,6 +189,25 @@ export function RoadmapSetup({
                 <Field label="Current class / year (optional)">
                   <input value={currentYear} onChange={(e) => setCurrentYear(e.target.value)} placeholder="e.g. Class 9, A2, Gap year" maxLength={40} className={inputCls} />
                 </Field>
+                <div>
+                  <Label>Where are you studying from?</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {COUNTRIES.map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => setCountry(c)}
+                        className={cn(
+                          "rounded-full px-3.5 py-1.5 text-[12.5px] font-medium ring-1 ring-inset transition-colors",
+                          country === c
+                            ? "bg-polaris-100 text-polaris-700 ring-polaris-300 dark:bg-polaris-400/25 dark:text-polaris-100 dark:ring-polaris-400/50"
+                            : "bg-paper-card text-ink-dim ring-polaris-200 hover:ring-polaris-300 dark:ring-white/[0.15]",
+                        )}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -167,6 +219,47 @@ export function RoadmapSetup({
                 <Field label="Academic target (optional)">
                   <input value={academicTarget} onChange={(e) => setAcademicTarget(e.target.value)} placeholder="e.g. GPA 5.0, 4 A*s" maxLength={120} className={inputCls} />
                 </Field>
+                <div className="grid sm:grid-cols-2 gap-5">
+                  <div>
+                    <Label>Target degree</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {DEGREES.map((d) => (
+                        <button
+                          key={d.v}
+                          onClick={() => setDegree(d.v)}
+                          className={cn(
+                            "rounded-full px-3.5 py-1.5 text-[12.5px] font-medium ring-1 ring-inset transition-colors",
+                            degree === d.v
+                              ? "bg-polaris-100 text-polaris-700 ring-polaris-300 dark:bg-polaris-400/25 dark:text-polaris-100 dark:ring-polaris-400/50"
+                              : "bg-paper-card text-ink-dim ring-polaris-200 hover:ring-polaris-300 dark:ring-white/[0.15]",
+                          )}
+                        >
+                          {d.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Dream university tier</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {TIERS.map((t) => (
+                        <button
+                          key={t.v}
+                          onClick={() => setTier(t.v)}
+                          title={t.hint}
+                          className={cn(
+                            "rounded-full px-3.5 py-1.5 text-[12.5px] font-medium ring-1 ring-inset transition-colors",
+                            tier === t.v
+                              ? "bg-polaris-100 text-polaris-700 ring-polaris-300 dark:bg-polaris-400/25 dark:text-polaris-100 dark:ring-polaris-400/50"
+                              : "bg-paper-card text-ink-dim ring-polaris-200 hover:ring-polaris-300 dark:ring-white/[0.15]",
+                          )}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
                 <div>
                   <Label>Exams in scope</Label>
                   <div className="flex flex-wrap gap-2">

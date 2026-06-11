@@ -15,11 +15,16 @@ import { cn } from "@/lib/cn";
 import type { RoadmapDoc, RoadmapConfig, EducationLevel } from "@/lib/roadmap/types";
 import { overallProgress } from "@/lib/roadmap/types";
 import { roadmapStore, useRoadmapStrategist } from "@/lib/roadmap/store";
-import { RoadmapSetup } from "./RoadmapSetup";
+import { RoadmapSetup, type ProfileSeed, type SetupInitialProfile } from "./RoadmapSetup";
 import { RoadmapTree } from "./RoadmapTree";
 import { RoadmapNodeModal } from "./RoadmapNodeModal";
 
-export function RoadmapPageClient({ defaultLevel }: { defaultLevel: EducationLevel }) {
+export function RoadmapPageClient({
+  defaultLevel, initialProfile = null,
+}: {
+  defaultLevel: EducationLevel;
+  initialProfile?: SetupInitialProfile;
+}) {
   const [doc, setDoc] = useState<RoadmapDoc | null | undefined>(undefined); // undefined = loading
   const [genBusy, setGenBusy] = useState(false);
   const [genErr, setGenErr] = useState<string | null>(null);
@@ -57,14 +62,16 @@ export function RoadmapPageClient({ defaultLevel }: { defaultLevel: EducationLev
     return () => clearTimeout(t);
   }, [toast]);
 
-  const generate = useCallback(async (config: RoadmapConfig) => {
+  const generate = useCallback(async (config: RoadmapConfig, seed: ProfileSeed) => {
     setGenBusy(true);
     setGenErr(null);
     try {
       const r = await fetch("/api/roadmap/v2", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(config),
+        // profileSeed makes the first roadmap double as onboarding — the
+        // server creates/updates the student profile from these answers.
+        body: JSON.stringify({ ...config, profileSeed: seed }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) {
@@ -102,7 +109,15 @@ export function RoadmapPageClient({ defaultLevel }: { defaultLevel: EducationLev
 
   /* ─── setup ─── */
   if (doc === null) {
-    return <RoadmapSetup defaultLevel={defaultLevel} onGenerate={generate} busy={genBusy} error={genErr} />;
+    return (
+      <RoadmapSetup
+        defaultLevel={defaultLevel}
+        initialProfile={initialProfile}
+        onGenerate={generate}
+        busy={genBusy}
+        error={genErr}
+      />
+    );
   }
 
   const overall = overallProgress(doc);

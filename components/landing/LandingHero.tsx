@@ -107,7 +107,7 @@ export function LandingHero() {
               transition={{ duration: 0.8, delay: 0.24, ease: [0.16, 1, 0.3, 1] }}
             >
               <Link
-                href={session ? "/roadmap" : "/onboard"}
+                href={session ? "/roadmap" : "/signup"}
                 className="group relative inline-flex items-center gap-2 rounded-full bg-paper px-6 py-3.5 text-[14px] font-semibold text-ink hover:bg-paper-soft transition-colors shadow-[0_12px_40px_-12px_rgba(250,246,240,0.45)]"
               >
                 <span className="relative flex h-2 w-2">

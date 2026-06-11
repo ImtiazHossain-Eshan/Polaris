@@ -230,7 +230,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
-              href="/onboard"
+              href="/roadmap"
               className="rounded-full border border-polaris-300 bg-white px-5 py-2.5 text-sm text-ink hover:bg-polaris-50 hover:border-polaris-400 transition-colors duration-150"
             >
               {t.dashboard.runIntake}
@@ -586,7 +586,7 @@ function EmptyState() {
       </div>
       <div className="text-ink mb-2 font-semibold">{t.dashboard.empty}</div>
       <Link
-        href="/onboard"
+        href="/roadmap"
         className="inline-flex mt-4 rounded-full bg-polaris-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-polaris-600 active:bg-polaris-700 transition-colors duration-150"
       >
         {t.dashboard.runIntake}

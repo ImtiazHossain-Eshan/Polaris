@@ -48,10 +48,10 @@ export default function SignUpPage() {
         return;
       }
 
-      // Students land on /account?welcome=1 — a modal prompts them to
-      // complete their academic profile before going further. Parents and
-      // partners head straight to /monitor.
-      window.location.href = role === "student" ? "/account?welcome=1" : "/monitor";
+      // Students go straight to /roadmap — its first-time setup IS the
+      // onboarding (collects profile + generates the first roadmap in one
+      // flow). Parents and partners head to /monitor.
+      window.location.href = role === "student" ? "/roadmap" : "/monitor";
     } catch {
       setError("Something went wrong");
       setLoading(false);
