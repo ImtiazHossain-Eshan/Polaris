@@ -186,8 +186,10 @@ function OrbitNode({
 }) {
   const rad = (m.angle * Math.PI) / 180;
   const r = RING_RADIUS[m.ring];
-  const left = 50 + r * Math.sin(rad);
-  const top = 50 - r * Math.cos(rad);
+  // toFixed keeps the server- and client-rendered style strings identical —
+  // raw trig floats serialize at different precisions and break hydration.
+  const left = (50 + r * Math.sin(rad)).toFixed(3);
+  const top = (50 - r * Math.cos(rad)).toFixed(3);
 
   return (
     // Outer: static position + centering translate (no animation here, so the
