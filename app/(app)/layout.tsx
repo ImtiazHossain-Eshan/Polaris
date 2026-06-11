@@ -17,6 +17,7 @@ import { getProfile, getLatestRoadmap, getUserById } from "@/lib/db/collections"
 import { LeftNav } from "@/components/app/LeftNav";
 import { TopBar } from "@/components/app/TopBar";
 import { AgentChat } from "@/components/app/AgentChat";
+import { StrategistLockedRail } from "@/components/app/StrategistLocked";
 import type { PathSummary } from "@/types/app";
 
 export const dynamic = "force-dynamic"; // session-bound — never cache the shell
@@ -76,14 +77,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <main className="flex-1 min-h-0 overflow-y-auto">{children}</main>
       </div>
 
-      <AgentChat
-        studentInitials={initials}
-        pathLabel={paths[0].name}
-        contextChips={[
-          `Plan ${user.plan}`,
-          ...(profile ? [`${profile.grade}`, profile.country] : ["new student"]),
-        ]}
-      />
+      {user.plan === "free" ? (
+        // Free plan: the Strategist rail shows the honest locked state — the
+        // working chat (and its API) are Pro/Elite.
+        <StrategistLockedRail />
+      ) : (
+        <AgentChat
+          studentInitials={initials}
+          pathLabel={paths[0].name}
+          contextChips={[
+            `Plan ${user.plan}`,
+            ...(profile ? [`${profile.grade}`, profile.country] : ["new student"]),
+          ]}
+        />
+      )}
     </div>
   );
 }

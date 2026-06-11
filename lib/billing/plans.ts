@@ -62,7 +62,6 @@ export const PLAN_CATALOG: PlanDef[] = [
       "Public requirement summaries",
       "Community resources & knowledge hub",
       "1 active roadmap with weekly tasks & replans",
-      "Strategist — 10 messages / 5 min",
       "Deadline tracking & family view",
     ],
     featuresBn: [
@@ -71,10 +70,9 @@ export const PLAN_CATALOG: PlanDef[] = [
       "পাবলিক রিকোয়ারমেন্ট সারাংশ",
       "কমিউনিটি রিসোর্স ও নলেজ হাব",
       "১টি সক্রিয় রোডম্যাপ — সাপ্তাহিক টাস্ক ও রিপ্ল্যান",
-      "স্ট্র্যাটেজিস্ট — ৫ মিনিটে ১০ মেসেজ",
       "ডেডলাইন ট্র্যাকিং ও ফ্যামিলি ভিউ",
     ],
-    limits: { strategistPer5Min: 10, maxConnections: 0, activeRoadmaps: 1 },
+    limits: { strategistPer5Min: 0, maxConnections: 0, activeRoadmaps: 1 },
     accent: "ink",
   },
   {
@@ -86,14 +84,16 @@ export const PLAN_CATALOG: PlanDef[] = [
     bdt: { monthly: 55000, yearly: 549000 }, // ৳550 / ৳5,490
     features: [
       "Everything in Free",
-      "3× Strategist budget — 30 messages / 5 min",
+      "AI Strategist — chat, score analysis, next steps",
+      "Strategist-aware roadmap replans & guidance",
       "Integration hub — GitHub, Codeforces & more",
       "Partner marketplace — matched student offers",
       "Up to 6 connected tools feeding your roadmap",
     ],
     featuresBn: [
       "ফ্রি-র সবকিছু",
-      "৩× স্ট্র্যাটেজিস্ট বাজেট — ৫ মিনিটে ৩০ মেসেজ",
+      "এআই স্ট্র্যাটেজিস্ট — চ্যাট, স্কোর বিশ্লেষণ, পরবর্তী ধাপ",
+      "স্ট্র্যাটেজিস্ট-চালিত রোডম্যাপ রিপ্ল্যান ও গাইডেন্স",
       "ইন্টিগ্রেশন হাব — GitHub, Codeforces সহ",
       "পার্টনার মার্কেটপ্লেস — ম্যাচ করা অফার",
       "৬টি পর্যন্ত কানেক্টেড টুল",
@@ -112,12 +112,12 @@ export const PLAN_CATALOG: PlanDef[] = [
     bdt: { monthly: 169000, yearly: 1690000 }, // ৳1,690 / ৳16,900
     features: [
       "Everything in Pro",
-      "6× Strategist budget — 60 messages / 5 min",
+      "2× Strategist budget — 60 messages / 5 min",
       "Unlimited tool connections",
     ],
     featuresBn: [
       "প্রো-র সবকিছু",
-      "৬× স্ট্র্যাটেজিস্ট বাজেট — ৫ মিনিটে ৬০ মেসেজ",
+      "২× স্ট্র্যাটেজিস্ট বাজেট — ৫ মিনিটে ৬০ মেসেজ",
       "আনলিমিটেড টুল কানেকশন",
     ],
     comingSoon: [

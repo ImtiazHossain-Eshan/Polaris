@@ -18,8 +18,11 @@ export type Feature =
   | "benchmark"
   | "caseStudyDetail"
   | "adaptiveReplanning"
+  | "strategistChat"
   | "integrations"
   | "partners"
+  | "consultantMarketplace"
+  | "communityChat"
   | "professorLists"
   | "analytics"
   | "strategyReport"
@@ -72,6 +75,13 @@ export const FEATURE_ACCESS: Record<Feature, FeatureAccess> = {
     route: "/api/roadmap/v2/adapt",
     upgradeMessage: "Sign in to replan your roadmap.",
   },
+  strategistChat: {
+    name: "AI Strategist",
+    minPlan: "pro",
+    implemented: true,
+    route: "/strategist + /api/strategist",
+    upgradeMessage: "The AI Strategist is available on Pro and Elite. Upgrade to chat about your roadmap, scores, and next steps.",
+  },
   integrations: {
     name: "Integration hub (GitHub, Codeforces, Google)",
     minPlan: "pro",
@@ -85,6 +95,23 @@ export const FEATURE_ACCESS: Record<Feature, FeatureAccess> = {
     implemented: true,
     route: "/partners",
     upgradeMessage: "Upgrade to Pro to unlock matched student offers.",
+  },
+  // Marketplace surfaces are deliberately plan-free: consultant bookings and
+  // community access generate separate marketplace revenue and must never be
+  // locked behind a subscription.
+  consultantMarketplace: {
+    name: "Consultant marketplace & bookings",
+    minPlan: "free",
+    implemented: true,
+    route: "/consultants + /bookings",
+    upgradeMessage: "Sign in to hire a verified consultant.",
+  },
+  communityChat: {
+    name: "Community channels",
+    minPlan: "free",
+    implemented: true,
+    route: "/community",
+    upgradeMessage: "Sign in to join the community.",
   },
   professorLists: {
     name: "Faculty & recommender lists",

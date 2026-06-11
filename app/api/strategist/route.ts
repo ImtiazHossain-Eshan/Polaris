@@ -20,6 +20,7 @@ import { getProfile, getLatestRoadmap, getRoadmapV2 } from "@/lib/db/collections
 import { roadmapContextLines } from "@/lib/roadmap/generate";
 import { integrationContextLines } from "@/lib/integrations/service";
 import { getAiPref, prefToRoute } from "@/lib/llm/prefs";
+import { planMeets, upgradeMessage } from "@/lib/features";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +28,18 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   try {
     const user = await requireSession();
+
+    // The AI Strategist is a Pro/Elite feature — Free users get a clear
+    // upgrade signal, never a degraded chat (matches FEATURE_ACCESS).
+    if (!planMeets(user.plan, "pro")) {
+      return NextResponse.json(
+        {
+          error: upgradeMessage("strategistChat"),
+          code: "UPGRADE_REQUIRED",
+        },
+        { status: 403 },
+      );
+    }
 
     const rl = await rateLimit(user.id, user.plan, "strategist");
     if (!rl.allowed) {

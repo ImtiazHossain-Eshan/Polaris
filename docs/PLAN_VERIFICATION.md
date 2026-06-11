@@ -28,13 +28,14 @@ actually does, plus the manual test checklist.
 | Public requirement summaries | WORKS — university detail modal (requirements, test policy, deadlines) | `UniversitiesClient` |
 | Community resources & knowledge hub | WORKS — `/resources` has no plan gate | `app/(app)/resources/page.tsx` |
 | 1 active roadmap with weekly tasks & replans | WORKS — roadmap v2 generate/adapt are session-gated only (one living doc per user); rate-limited | `/api/roadmap/v2`, `/api/roadmap/v2/adapt` |
-| Strategist — 10 messages / 5 min | WORKS — `BUDGETS.free = 10` | `lib/ratelimit.ts` |
 | Deadline tracking & family view | WORKS — `/deadlines`, `/family` ungated | — |
+| AI Strategist | LOCKED by design — `/strategist` renders the upgrade screen, the rail shows `StrategistLockedRail`, and `/api/strategist` returns 403 `UPGRADE_REQUIRED` | `app/(app)/strategist/page.tsx`, `app/(app)/layout.tsx`, `app/api/strategist/route.ts` |
+| Consultants, bookings & community | WORKS — deliberately plan-free (marketplace revenue), never subscription-gated | `/consultants`, `/bookings`, `/community` |
 
 ### Pro
 | Promise | Status | Where |
 | --- | --- | --- |
-| 3× Strategist budget (30 / 5 min) | WORKS — `BUDGETS.pro = 30` | `lib/ratelimit.ts` |
+| AI Strategist (chat, score analysis, replans) | WORKS — page + rail + API unlock at `planMeets(plan, "pro")`; budget 30 msgs / 5 min | `app/api/strategist/route.ts`, `lib/ratelimit.ts` |
 | Integration hub | WORKS — `/connections` is `requirePlan("pro")`; real Codeforces/GitHub imports | `app/(app)/connections/page.tsx` |
 | Partner marketplace | WORKS — `/partners` is `requirePlan("pro")` | `app/(app)/partners/page.tsx` |
 | Up to 6 connected tools | WORKS — `PLAN_FEATURES.pro.maxConnections = 6` (derived from catalog) | `lib/features.ts` |
@@ -42,7 +43,7 @@ actually does, plus the manual test checklist.
 ### Elite
 | Promise | Status | Where |
 | --- | --- | --- |
-| 6× Strategist budget (60 / 5 min) | WORKS — `BUDGETS.elite = 60` | `lib/ratelimit.ts` |
+| 2× Strategist budget (60 / 5 min) | WORKS — `BUDGETS.elite = 60` | `lib/ratelimit.ts` |
 | Unlimited tool connections | WORKS — cap 99 | `lib/features.ts` |
 | Deep benchmarking vs admitted profiles | NOT BUILT → listed under `comingSoon`, renders with "Soon" tag | catalog |
 | Faculty & recommender lists | NOT BUILT → `comingSoon` | catalog |
@@ -62,10 +63,13 @@ actually does, plus the manual test checklist.
 
 1. **Free user** — sign up fresh → can open `/universities` (directory, fit
    rings, compare, detail requirements), `/resources`, `/deadlines`,
-   `/family`; generate + replan roadmap; Strategist stops at ~10 messages in
-   5 min with the quota modal. `/connections` and `/partners` redirect to
-   `/billing` (requirePlan). Sidebar shows lock badges only on Connections
-   and Partners. Plan badge everywhere says "Free".
+   `/family`, `/consultants`, `/community`, `/bookings`; generate + replan
+   the single roadmap. `/strategist` shows the upgrade screen (5 unlock
+   bullets + "Upgrade to Pro"); the right rail shows the locked panel; a
+   direct POST to `/api/strategist` returns 403 `UPGRADE_REQUIRED`.
+   `/connections` and `/partners` redirect to `/billing` (requirePlan).
+   Sidebar shows lock badges on Strategist, Connections, and Partners.
+   Plan badge everywhere says "Free".
 2. **Pro user** (set `plan: "pro"` on the user in Mongo or via admin) —
    everything in Free, plus `/connections` and `/partners` open; Strategist
    budget 30; billing hero shows "Pro", its card shows "Your plan", Free
