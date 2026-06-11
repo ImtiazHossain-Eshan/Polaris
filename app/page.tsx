@@ -14,6 +14,7 @@
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { LandingHero } from "@/components/landing/LandingHero";
+import { FloatingDemoVideo } from "@/components/landing/FloatingDemoVideo";
 import { EcosystemOrbit } from "@/components/landing/EcosystemOrbit";
 import { RoadmapMotionPreview } from "@/components/landing/RoadmapMotionPreview";
 import { StrategistMotionPreview } from "@/components/landing/StrategistMotionPreview";
@@ -31,6 +32,7 @@ export default function HomePage() {
     <main className="min-h-screen bg-ink text-paper">
       <Nav />
       <LandingHero />
+      <FloatingDemoVideo />
       <EcosystemOrbit />
       <RoadmapMotionPreview />
       <StrategistMotionPreview />

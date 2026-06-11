@@ -17,7 +17,7 @@ const STORAGE_KEY = "polaris.theme";
 // Everything else (landing, /pricing, /case-studies, /signin, /onboard, etc.)
 // stays light regardless of user preference.
 const APP_PREFIX_RE =
-  /^\/(strategist|dashboard|account|billing|connections|deadlines|family|partners|resources|roadmap|settings|transactions|universities|admin|monitor)(\/|$)/;
+  /^\/(strategist|dashboard|account|billing|connections|deadlines|family|partners|consultants|community|bookings|resources|roadmap|settings|transactions|universities|admin|monitor)(\/|$)/;
 
 const ThemeCtx = createContext<{ theme: Theme; toggle: () => void; set: (t: Theme) => void }>({
   theme: "light",
@@ -86,7 +86,7 @@ export const THEME_PREFLIGHT_SCRIPT = `
 (function(){
   try {
     var p = location.pathname || '/';
-    var isApp = /^\\/(strategist|dashboard|account|billing|connections|deadlines|family|partners|resources|roadmap|settings|transactions|universities|admin|monitor)(\\/|$)/.test(p);
+    var isApp = /^\\/(strategist|dashboard|account|billing|connections|deadlines|family|partners|consultants|community|bookings|resources|roadmap|settings|transactions|universities|admin|monitor)(\\/|$)/.test(p);
     var t = 'light';
     if (isApp) {
       var s = localStorage.getItem('${STORAGE_KEY}');
