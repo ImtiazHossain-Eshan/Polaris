@@ -32,7 +32,7 @@ export default function SignInPage() {
       // Hard redirect ensures the browser sends the fresh session cookie.
       // router.push does a client-side navigation that can race with the
       // middleware auth check before the cookie is fully available.
-      window.location.href = "/dashboard";
+      window.location.href = "/roadmap";
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);

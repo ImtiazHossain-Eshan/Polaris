@@ -48,8 +48,10 @@ export default function SignUpPage() {
         return;
       }
 
-      // Parents/partners go to monitoring; students to their dashboard.
-      window.location.href = role === "student" ? "/dashboard" : "/monitor";
+      // Students land on /account?welcome=1 — a modal prompts them to
+      // complete their academic profile before going further. Parents and
+      // partners head straight to /monitor.
+      window.location.href = role === "student" ? "/account?welcome=1" : "/monitor";
     } catch {
       setError("Something went wrong");
       setLoading(false);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -28,12 +28,47 @@ type MonitorStudent = {
 export default function MonitorPage() {
   const [students, setStudents] = useState<MonitorStudent[] | null>(null);
 
-  useEffect(() => {
+  // Parent/partner invite acceptance lives here now — relocated from the old
+  // /family page, which became the student-only workspace under app/(app).
+  const [acceptToken, setAcceptToken] = useState("");
+  const [acceptMsg, setAcceptMsg] = useState("");
+  const [accepting, setAccepting] = useState(false);
+
+  const loadStudents = useCallback(() => {
     fetch("/api/monitor")
       .then((r) => (r.ok ? r.json() : { students: [] }))
       .then((d) => setStudents(d.students ?? []))
       .catch(() => setStudents([]));
   }, []);
+
+  useEffect(() => {
+    loadStudents();
+    const token = new URLSearchParams(window.location.search).get("accept");
+    if (token) setAcceptToken(token);
+  }, [loadStudents]);
+
+  async function accept(e: React.FormEvent) {
+    e.preventDefault();
+    setAcceptMsg("");
+    setAccepting(true);
+    try {
+      const res = await fetch("/api/links/accept", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token: acceptToken.trim() }),
+      });
+      if (res.ok) {
+        setAcceptMsg("Linked! The student now appears below.");
+        setAcceptToken("");
+        loadStudents();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setAcceptMsg(d.error || "Could not accept invite");
+      }
+    } finally {
+      setAccepting(false);
+    }
+  }
 
   return (
     <main className="min-h-screen">
@@ -45,6 +80,33 @@ export default function MonitorPage() {
         <p className="mt-3 text-ink-dim">
           A read-only view of the students who have linked you to their journey.
         </p>
+
+        {/* Accept an invite (parent / partner side) */}
+        <div className="mt-8 glass rounded-2xl p-6">
+          <div className="text-sm font-semibold text-ink mb-2">Accept an invite</div>
+          <p className="text-xs text-ink-muted mb-4">
+            Paste an invite token (or the part after <code>?accept=</code> in your invite link).
+            You must be signed in with the invited email.
+          </p>
+          <form onSubmit={accept} className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              required
+              placeholder="invite token"
+              value={acceptToken}
+              onChange={(e) => setAcceptToken(e.target.value)}
+              className="flex-1 rounded-xl border border-polaris-200 bg-white px-4 py-2.5 text-sm focus:border-polaris-400 focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={accepting}
+              className="rounded-full border border-polaris-300 bg-white px-5 py-2.5 text-sm font-semibold text-ink hover:bg-polaris-50 hover:border-polaris-400 transition-colors duration-150 disabled:opacity-50"
+            >
+              {accepting ? "…" : "Accept"}
+            </button>
+          </form>
+          {acceptMsg && <p className="mt-3 text-sm text-ink-dim">{acceptMsg}</p>}
+        </div>
 
         {students === null ? (
           <p className="mt-10 text-ink-dim">Loading…</p>
