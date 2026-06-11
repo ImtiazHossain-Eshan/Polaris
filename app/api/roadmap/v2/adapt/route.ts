@@ -40,7 +40,7 @@ export const POST = withErrorHandling(async (req) => {
   if (!profile) return fail(412, "Complete the intake first.");
   if (!doc) return fail(404, "No roadmap to adapt yet.");
 
-  const adapted = await adaptRoadmap(profile, doc, body.reason);
+  const adapted = await adaptRoadmap(profile, doc, body.reason, { userId: session.id });
   if (!adapted) return fail(422, "The Strategist couldn't produce a valid adaptation. Try again.");
 
   await saveRoadmapV2(session.id, adapted);

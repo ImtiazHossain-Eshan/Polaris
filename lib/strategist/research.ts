@@ -27,6 +27,7 @@ import {
   type StrategistMode,
 } from "./profiles";
 import { chooseModel, pickFallback, type RouteResult } from "@/lib/llm/router";
+import type { RouteMode } from "@/lib/llm/providers/types";
 import { recordUsage } from "@/lib/db/collections";
 import type { StrategistChunk } from "./schemas";
 import type { StudentProfile } from "@/lib/profile";
@@ -39,6 +40,7 @@ export type ResearchInput = {
   recentMilestones: string[];
   userMessage: string;
   mode: StrategistMode;
+  routeMode?: RouteMode;
   preferred?: { providerId: string; modelId: string };
   autoSelect?: boolean;
   offline?: boolean;
@@ -73,6 +75,7 @@ export async function* deepResearch(
   // 2. Pick a model via the router.
   let route = await chooseModel({
     task: input.mode,
+    mode: input.routeMode,
     preferred: input.preferred,
     autoSelect: input.autoSelect,
     offline: input.offline,

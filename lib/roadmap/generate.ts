@@ -177,6 +177,7 @@ function fromGenPlan(plan: GenPlan, phases: number): RoadmapBranch[] {
 export async function generateRoadmap(
   profile: StudentProfile,
   config: RoadmapConfig,
+  opts: { userId?: string } = {},
 ): Promise<RoadmapDoc> {
   const phases = phaseCount(config.durationDays, config.timelineMode);
 
@@ -185,6 +186,8 @@ export async function generateRoadmap(
 
   const raw = await completeText({
     task: "general",
+    userId: opts.userId,
+    feature: "roadmap-generate",
     system: generationPrompt(profile, config, phases),
     messages: [{ role: "user", content: "Generate the roadmap tree now." }],
     temperature: 0.5,
@@ -289,6 +292,7 @@ export async function adaptRoadmap(
   profile: StudentProfile,
   doc: RoadmapDoc,
   reason?: string,
+  opts: { userId?: string } = {},
 ): Promise<RoadmapDoc | null> {
   const phases = doc.phases.length;
   const done = doc.branches.flatMap((b) => b.nodes.filter((n) => n.status === "done"));
@@ -311,6 +315,8 @@ export async function adaptRoadmap(
 
   const raw = await completeText({
     task: "general",
+    userId: opts.userId,
+    feature: "roadmap-adapt",
     system,
     messages: [{ role: "user", content: "Adapt the roadmap now." }],
     temperature: 0.5,

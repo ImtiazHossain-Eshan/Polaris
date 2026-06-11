@@ -128,6 +128,7 @@ const GROQ_MODELS: ModelDescriptor[] = [
     contextWindow: 131_072,
     capabilities: { code: true, reasoning: true },
     preferredFor: ["general", "study", "coding"],
+    modes: ["fast", "balanced", "advanced"],
   },
   {
     id: "llama-3.1-8b-instant",
@@ -135,6 +136,7 @@ const GROQ_MODELS: ModelDescriptor[] = [
     tier: "free",
     contextWindow: 131_072,
     preferredFor: ["general"],
+    modes: ["fast"],
   },
   {
     id: "mixtral-8x7b-32768",
@@ -176,6 +178,7 @@ const OPENROUTER_MODELS: ModelDescriptor[] = [
     contextWindow: 65_536,
     capabilities: { reasoning: true },
     preferredFor: ["research", "coding"],
+    modes: ["reasoning"],
   },
 ];
 
@@ -220,6 +223,7 @@ const OPENAI_MODELS: ModelDescriptor[] = [
     contextWindow: 128_000,
     capabilities: { code: true, reasoning: true },
     preferredFor: ["general", "coding"],
+    modes: ["fast", "balanced"],
   },
   {
     id: "gpt-4o",
@@ -229,6 +233,7 @@ const OPENAI_MODELS: ModelDescriptor[] = [
     contextWindow: 128_000,
     capabilities: { code: true, reasoning: true },
     preferredFor: ["research", "coding"],
+    modes: ["advanced", "reasoning"],
   },
 ];
 

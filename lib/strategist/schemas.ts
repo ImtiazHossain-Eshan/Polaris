@@ -19,6 +19,8 @@ export const StrategistRequestSchema = z.object({
     .optional(),
   /** Strategist mode. Drives prompt profile + model preference. */
   mode: z.enum(["general", "research", "study", "coding"]).default("general"),
+  /** Speed/quality preset for the router (Fast/Balanced/Advanced/Reasoning). */
+  routeMode: z.enum(["fast", "balanced", "advanced", "reasoning"]).optional(),
   /** Explicit provider/model pick. */
   model: z
     .object({

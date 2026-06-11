@@ -148,6 +148,8 @@ export async function ensureWeeklyTasks(userId: string): Promise<DbWeeklyTask[]>
   let plan: GeneratedTask[] | null = null;
   const raw = await completeText({
     task: "general",
+    userId,
+    feature: "weekly-generate",
     system: generationSystemPrompt(profile, milestones),
     messages: [{ role: "user", content: "Generate the weekly plan now." }],
     temperature: 0.5,
@@ -232,6 +234,8 @@ export async function replanWeeklyTasks(
 
   const raw = await completeText({
     task: "general",
+    userId,
+    feature: "weekly-replan",
     system: replanSystemPrompt(profile, tasks, fromWeek, opts.reason),
     messages: [{ role: "user", content: "Re-plan the upcoming weeks now." }],
     temperature: 0.5,
@@ -283,6 +287,8 @@ export async function reviewSubmission(
 
   return completeText({
     task: "study",
+    userId,
+    feature: "submission-review",
     system,
     messages: [{ role: "user", content: task.submission || "(The student marked this complete without writing a submission. Review based on their notes and progress; remind them to document their work next time.)" }],
     temperature: 0.4,

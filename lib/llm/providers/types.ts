@@ -34,6 +34,14 @@ export type LLMStreamChunk =
 export type ProviderTier = "free" | "paid" | "local";
 export type TaskKind = "general" | "research" | "study" | "coding";
 
+/**
+ * User-facing speed/quality preset. Orthogonal to TaskKind: the task says
+ * WHAT the request is, the mode says HOW the user wants it served —
+ * fast (low latency), balanced (default), advanced (strongest model),
+ * reasoning (multi-step thinking).
+ */
+export type RouteMode = "fast" | "balanced" | "advanced" | "reasoning";
+
 /** Static descriptor for a model exposed by a provider. */
 export type ModelDescriptor = {
   /** Internal id used in API responses / URLs (e.g. "gemini-2.5-flash"). */
@@ -59,6 +67,8 @@ export type ModelDescriptor = {
   };
   /** Tasks this model is preferred for when auto-selecting. */
   preferredFor?: TaskKind[];
+  /** Speed/quality presets this model is a strong pick for. */
+  modes?: RouteMode[];
   /** Previous-generation model; hidden from the dropdown by default. */
   legacy?: boolean;
 };

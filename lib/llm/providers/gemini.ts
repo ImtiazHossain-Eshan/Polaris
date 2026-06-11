@@ -33,6 +33,7 @@ const MODELS: ModelDescriptor[] = [
     contextWindow: 1_000_000,
     capabilities: { search: true, longContext: true, reasoning: true, code: true },
     preferredFor: ["general", "research", "study", "coding"],
+    modes: ["fast", "balanced"],
   },
   {
     id: "gemini-2.5-pro",
@@ -41,6 +42,7 @@ const MODELS: ModelDescriptor[] = [
     contextWindow: 2_000_000,
     capabilities: { search: true, longContext: true, reasoning: true, code: true },
     preferredFor: ["research"],
+    modes: ["advanced", "reasoning"],
   },
   // ─── Legacy (hidden behind "Show older models" toggle) ────────────
   {

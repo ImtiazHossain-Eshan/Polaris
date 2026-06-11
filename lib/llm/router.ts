@@ -31,12 +31,15 @@ import type {
   ModelDescriptor,
   ProviderTier,
   ResolvedModel,
+  RouteMode,
   TaskKind,
 } from "./providers/types";
 
 export type RouteRequest = {
   /** User's task / mode hint. */
   task: TaskKind;
+  /** Speed/quality preset: fast | balanced | advanced | reasoning. */
+  mode?: RouteMode;
   /** Explicit user pick — bypasses auto-select. */
   preferred?: { providerId: string; modelId: string };
   /** Skip the web entirely — only resolve local providers. */
@@ -55,11 +58,32 @@ export type RouteResult = {
   fallbacks: ResolvedModel[];
 };
 
+/**
+ * Does this model suit the requested speed/quality preset? Tagged models
+ * (descriptor.modes) answer directly; untagged ones (e.g. dynamic Ollama
+ * lists) fall back to a name/capability heuristic.
+ */
+function matchesMode(model: ModelDescriptor, mode: RouteMode): boolean {
+  if (model.modes) return model.modes.includes(mode);
+  const id = model.id.toLowerCase();
+  switch (mode) {
+    case "fast":
+      return /flash|instant|mini|haiku|8b|7b|3b|1b/.test(id);
+    case "advanced":
+      return /pro|opus|70b|405b|gpt-4o$|sonnet/.test(id);
+    case "reasoning":
+      return !!model.capabilities?.reasoning || /r1|opus|think/.test(id);
+    case "balanced":
+      return true; // balanced = no constraint
+  }
+}
+
 /** Numeric ranking; higher is better. */
 function scoreModel(
   model: ModelDescriptor,
   task: TaskKind,
   allowPaid: boolean,
+  mode?: RouteMode,
 ): number {
   if (model.tier === "paid" && !allowPaid) return -1;
   let s = 0;
@@ -75,6 +99,10 @@ function scoreModel(
   if (model.capabilities?.reasoning && (task === "research" || task === "coding")) s += 20;
   if (model.capabilities?.search && task === "research") s += 15;
   if (model.capabilities?.longContext) s += 5;
+
+  // Speed/quality preset: strong bonus for matching models so e.g. "fast"
+  // routes to Flash/Instant and "reasoning" routes to R1/Pro-class.
+  if (mode && mode !== "balanced") s += matchesMode(model, mode) ? 45 : -25;
 
   // Heavy penalty for previous-generation models — Auto should pick the
   // current-gen of any provider, only falling back to legacy if it's the
@@ -92,6 +120,7 @@ async function listConfiguredCandidates(
   task: TaskKind,
   allowPaid: boolean,
   onlyTiers?: ProviderTier[],
+  mode?: RouteMode,
 ): Promise<Candidate[]> {
   const nested = await Promise.all(
     ALL_PROVIDERS.map(async (p): Promise<Candidate[]> => {
@@ -101,7 +130,7 @@ async function listConfiguredCandidates(
       const candidates: Candidate[] = [];
       for (const m of models) {
         if (onlyTiers && !onlyTiers.includes(m.tier)) continue;
-        const score = scoreModel(m, task, allowPaid);
+        const score = scoreModel(m, task, allowPaid, mode);
         if (score < 0) continue;
         candidates.push({ provider: p, model: m, score });
       }
@@ -121,7 +150,7 @@ export async function chooseModel(req: RouteRequest): Promise<RouteResult | null
   if (req.preferred && !req.autoSelect) {
     const r = await resolveModel(req.preferred.providerId, req.preferred.modelId);
     if (r) {
-      const fallbacks = await buildFallbacks(task, allowPaid, r);
+      const fallbacks = await buildFallbacks(task, allowPaid, r, req.mode);
       return {
         chosen: r,
         reason: `User-selected ${r.provider.name} → ${r.model.label}.`,
@@ -132,7 +161,7 @@ export async function chooseModel(req: RouteRequest): Promise<RouteResult | null
 
   // ── 2. Offline mode → local only ──
   if (req.offline) {
-    const localOnly = await listConfiguredCandidates(task, false, ["local"]);
+    const localOnly = await listConfiguredCandidates(task, false, ["local"], req.mode);
     const top = localOnly[0];
     if (top) {
       return {
@@ -145,7 +174,7 @@ export async function chooseModel(req: RouteRequest): Promise<RouteResult | null
   }
 
   // ── 3. Auto-select ──
-  const all = await listConfiguredCandidates(task, allowPaid);
+  const all = await listConfiguredCandidates(task, allowPaid, undefined, req.mode);
   const top = all[0];
   if (!top) return null;
   const reason = autoReason(top.model, task);
@@ -170,8 +199,9 @@ async function buildFallbacks(
   task: TaskKind,
   allowPaid: boolean,
   excluding: ResolvedModel,
+  mode?: RouteMode,
 ): Promise<ResolvedModel[]> {
-  const all = await listConfiguredCandidates(task, allowPaid);
+  const all = await listConfiguredCandidates(task, allowPaid, undefined, mode);
   return all
     .filter((c) => !(c.provider.id === excluding.provider.id && c.model.id === excluding.model.id))
     .slice(0, 3)
