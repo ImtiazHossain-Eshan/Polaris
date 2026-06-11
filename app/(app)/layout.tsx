@@ -34,9 +34,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ]);
 
   if (!user) redirect("/signin");
-  // The (app) shell is the student workspace and requires a completed intake.
-  // Parents/partners (no profile) use /monitor instead — see middleware + /monitor.
-  if (!profile) redirect("/onboard");
+  // The (app) shell is the student workspace. Parents/partners use /monitor.
+  // Students WITHOUT a profile are allowed in: /roadmap's first-time setup is
+  // the onboarding now and creates the profile on first generation.
+  if (user.role === "parent" || user.role === "partner") redirect("/monitor");
 
   const initials = user.name
     .split(/\s+/).slice(0, 2).map(s => s[0]?.toUpperCase() ?? "").join("");
@@ -47,8 +48,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     {
       id: "primary",
       name: roadmap?.roadmap.summary?.slice(0, 60) ?? "Active strategy",
-      target: profile.targetTier,
-      degree: profile.degree,
+      target: profile?.targetTier ?? "unset",
+      degree: profile?.degree ?? "undecided",
       horizon: "Active",
       probability: 0.41, // TODO: pull from ML service (lib/ml/probability.ts)
       color: "polaris",
@@ -65,7 +66,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         plan={user.plan}
         studentName={user.name}
         studentInitials={initials}
-        studentGrade={profile.grade}
+        studentGrade={profile?.grade ?? "getting started"}
         paths={paths}
         activePathId={paths[0].id}
       />
@@ -80,8 +81,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         pathLabel={paths[0].name}
         contextChips={[
           `Plan ${user.plan}`,
-          `${profile.grade}`,
-          profile.country,
+          ...(profile ? [`${profile.grade}`, profile.country] : ["new student"]),
         ]}
       />
     </div>

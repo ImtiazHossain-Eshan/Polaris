@@ -90,7 +90,7 @@ export function LandingCTA() {
               <span className="transition-transform duration-200 group-hover:translate-x-1"><GArrow /></span>
             </Link>
             <Link
-              href="/onboard"
+              href="/roadmap"
               className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/15 px-6 py-4 text-[14px] font-medium text-paper hover:bg-white/15 transition-colors"
             >
               <GRoute s={16} /> Build my roadmap

@@ -26,7 +26,7 @@ export function Footer() {
         { href: "/#how", label: "How it works" },
         { href: "/#pricing", label: "Pricing" },
         { href: "/case-studies", label: "Case studies" },
-        { href: "/onboard", label: "Start intake" },
+        { href: "/roadmap", label: "Build your roadmap" },
       ],
     },
     {
@@ -194,7 +194,7 @@ function AnimatedLogo() {
    across left-to-right. */
 function CtaButton() {
   return (
-    <Link href="/onboard" className="inline-flex shrink-0">
+    <Link href="/roadmap" className="inline-flex shrink-0">
       <motion.span
         className="group relative inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-[14px] font-semibold text-paper shadow-[0_10px_30px_-12px_rgba(0,0,0,0.35)] overflow-hidden"
         whileHover={{ y: -3, boxShadow: "0 22px 50px -16px rgba(0,0,0,0.45)" }}
