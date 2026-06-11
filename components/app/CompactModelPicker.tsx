@@ -511,7 +511,7 @@ function Switch({ checked, onChange, theme }: { checked: boolean; onChange: (b: 
       )}
     >
       <span className={cn(
-        "absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200",
+        "absolute left-0 top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200",
         checked ? "translate-x-3.5" : "translate-x-0.5",
       )}/>
     </button>

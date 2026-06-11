@@ -205,6 +205,21 @@ html.lenis body {
     --c-ink-faint:  200 185 166;
   }
 
+  /* Counter-override: popovers/menus that render INSIDE dark chrome
+     (TopBar account menu, rail overlays) but must follow the PAGE theme.
+     Re-asserts the global dark palette so bg-paper-card panels go dark.
+     Declared after .app-glass-dark so it wins at equal specificity. */
+  :root[data-theme="dark"] .theme-pop {
+    --c-paper:      16  12  10;
+    --c-paper-soft: 28  22  18;
+    --c-paper-deep: 44  34  28;
+    --c-paper-card: 38  30  24;
+    --c-ink:        246 240 230;
+    --c-ink-dim:    206 196 184;
+    --c-ink-muted:  160 148 132;
+    --c-ink-faint:  108 98  86;
+  }
+
   /* Body canvas swaps to a true dark gradient. */
   :root[data-theme="dark"] body {
     background:

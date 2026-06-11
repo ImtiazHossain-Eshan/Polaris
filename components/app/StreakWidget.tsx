@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/cn";
@@ -39,8 +40,10 @@ function dayKey(d: Date): string {
 export function StreakWidget() {
   const [data, setData] = useState<StreakDto | null>(null);
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     let alive = true;
     fetch("/api/streak", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
@@ -118,9 +121,17 @@ export function StreakWidget() {
         </div>
       </button>
 
-      <AnimatePresence>
-        {open && data && <StreakDetail data={data} onClose={() => setOpen(false)} />}
-      </AnimatePresence>
+      {/* Portal to <body>: the sidebar's backdrop-filter creates a containing
+          block that would trap this fixed overlay inside the 250px column,
+          and the .app-glass-dark variable flip would force it light. Outside
+          both, it centers on the viewport and follows the page theme. */}
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {open && data && <StreakDetail data={data} onClose={() => setOpen(false)} />}
+          </AnimatePresence>,
+          document.body,
+        )}
     </>
   );
 }
