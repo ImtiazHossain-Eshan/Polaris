@@ -85,7 +85,7 @@ export function SettingsUsage() {
               "text-[11.5px] font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition-colors",
               days === d
                 ? "bg-polaris-100 ring-polaris-300 text-ink"
-                : "bg-white ring-polaris-200 text-ink-dim hover:text-ink hover:ring-polaris-300",
+                : "bg-paper-card ring-polaris-200 text-ink-dim hover:text-ink hover:ring-polaris-300 dark:ring-white/[0.12]",
             )}
           >
             {d}d
@@ -135,7 +135,7 @@ export function SettingsUsage() {
                 </thead>
                 <tbody>
                   {summary.byProvider.map((r) => (
-                    <tr key={`${r.providerId}::${r.modelId}`} className="border-t border-polaris-500/10 bg-white">
+                    <tr key={`${r.providerId}::${r.modelId}`} className="border-t border-polaris-500/10 bg-paper-card dark:border-white/[0.08]">
                       <td className="px-3 py-2">
                         <div className="font-medium text-ink truncate max-w-[220px]">{r.modelId}</div>
                         <div className="text-[10.5px] text-ink-muted font-mono">
@@ -164,7 +164,7 @@ export function SettingsUsage() {
             </div>
             <ul className="rounded-xl ring-1 ring-inset ring-polaris-500/10 overflow-hidden divide-y divide-polaris-500/10">
               {summary.recent.map((r, i) => (
-                <li key={i} className="px-3 py-2 bg-white flex items-center gap-3 text-[12px]">
+                <li key={i} className="px-3 py-2 bg-paper-card flex items-center gap-3 text-[12px]">
                   <span className="text-ink-muted font-mono text-[10.5px] w-24 shrink-0">
                     {new Date(r.createdAt).toLocaleString()}
                   </span>
@@ -175,7 +175,7 @@ export function SettingsUsage() {
                   <span className="text-ink-muted font-mono text-[10.5px]">{r.latencyMs} ms</span>
                   <span className={cn(
                     "font-mono text-[10.5px]",
-                    r.outcome === "ok" ? "text-aurora-600" : "text-rose-600",
+                    r.outcome === "ok" ? "text-aurora-600 dark:text-aurora-300" : "text-rose-600 dark:text-rose-300",
                   )}>
                     {r.outcome}
                     {r.fallback && " · fb"}

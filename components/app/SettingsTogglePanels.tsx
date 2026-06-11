@@ -208,7 +208,9 @@ function ToggleRow({
       >
         <span
           className={cn(
-            "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
+            // left-0 anchors the knob: without it, the button's centered
+            // static position pushed the knob outside the track when checked.
+            "absolute left-0 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
             checked ? "translate-x-[18px]" : "translate-x-0.5",
           )}
         />
