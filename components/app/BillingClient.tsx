@@ -325,6 +325,21 @@ function PricingCard({
             {f}
           </li>
         ))}
+        {def.comingSoon?.map((f) => (
+          <li key={f} className="flex items-start gap-2 text-[12px] text-ink-muted leading-snug">
+            <span className="mt-0.5 shrink-0 text-ink-faint" aria-hidden>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+              </svg>
+            </span>
+            <span>
+              {f}
+              <span className="ml-1.5 align-middle rounded-full bg-paper-soft px-1.5 py-0.5 text-[8.5px] uppercase tracking-[0.12em] font-bold text-ink-muted ring-1 ring-inset ring-ink/10 dark:ring-white/[0.12]">
+                Soon
+              </span>
+            </span>
+          </li>
+        ))}
       </ul>
 
       {onSelect ? (

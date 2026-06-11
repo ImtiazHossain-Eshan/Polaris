@@ -1,7 +1,7 @@
 import type { StudentProfile } from "@/lib/profile";
 import { getCaseStudies } from "@/lib/content";
 import { ok, withErrorHandling, parseJson } from "@/lib/api/respond";
-import { requirePlan } from "@/lib/authz";
+import { requireSession } from "@/lib/authz";
 import { benchmarkBodySchema } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
@@ -41,8 +41,8 @@ function matchScore(profile: StudentProfile, cs: CaseStudy): number {
 }
 
 export const POST = withErrorHandling(async (req) => {
-  // Benchmarking is a Pro feature.
-  await requirePlan("pro");
+  // Acceptance-rate benchmarks are part of the Free plan promise.
+  await requireSession();
   const { profile } = benchmarkBodySchema.parse(await parseJson(req)) as {
     profile: StudentProfile;
   };

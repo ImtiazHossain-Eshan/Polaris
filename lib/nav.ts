@@ -5,7 +5,7 @@ export const NAV: NavItem[] = [
   { id: "roadmap",      label: "Roadmap",      hint: "Tasks & milestones",   shortcut: "G R" },
   { id: "strategist",   label: "Strategist",   hint: "AI agent",              shortcut: "G A" },
   { id: "deadlines",    label: "Deadlines",    hint: "Calendar",              shortcut: "G D" },
-  { id: "universities", label: "Universities", hint: "Probability engine",    shortcut: "G U", minPlan: "pro" },
+  { id: "universities", label: "Universities", hint: "Directory & fit",       shortcut: "G U" },
   { id: "resources",    label: "Resources",    hint: "Library & notes",       shortcut: "G L" },
   { id: "connections",  label: "Connections",  hint: "Notion · Obsidian",     shortcut: "G C", minPlan: "pro" },
   { id: "partners",     label: "Partners",     hint: "Offers · marketplace",  shortcut: "G P", minPlan: "pro" },

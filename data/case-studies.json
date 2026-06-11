@@ -197,6 +197,20 @@
     "tags": ["Gates", "Cambridge", "PhD", "India", "ML"]
   },
   {
+    "id": "cs-harvard-1",
+    "title": "Bangladeshi student admitted to Harvard Biomedical Engineering",
+    "profile": {
+      "country": "Bangladesh",
+      "school": "Viqarunnisa Noon School & College, Dhaka",
+      "gpa": "5.0/5.0 HSC, A-level A*A*A* (Biology, Chemistry, Maths)",
+      "tests": "SAT 1540, TOEFL 117",
+      "ecs": ["Published first-author paper on low-cost prosthetics in IEEE EMBS", "Founded health-screening camp serving 5k rural Bangladeshis", "National Biology Olympiad gold medalist", "Intern at icddr,b infectious disease lab"],
+      "tier": "elite"
+    },
+    "whatWorked": "Harvard SEAS values deep technical skill paired with human-centered impact. First-author IEEE publication + a health camp with measurable reach showed both engineering rigor and the social conscience Harvard essays reward. Biology Olympiad gold anchored the academic narrative.",
+    "tags": ["Harvard", "biomedical", "research", "Bangladesh", "social-impact"]
+  },
+  {
     "id": "cs-budget-1",
     "title": "Bangladeshi student admitted to U of T on partial scholarship (financial constraint case)",
     "profile": {
