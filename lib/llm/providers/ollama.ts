@@ -47,7 +47,7 @@ async function probe(): Promise<boolean> {
   }
   try {
     const ctrl = new AbortController();
-    const timeout = setTimeout(() => ctrl.abort(), 800);
+    const timeout = setTimeout(() => ctrl.abort(), 400);
     const res = await fetch(`${baseUrl()}/api/tags`, { signal: ctrl.signal });
     clearTimeout(timeout);
     const ok = res.ok;
