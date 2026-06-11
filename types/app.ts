@@ -19,9 +19,12 @@ export type NavItemId =
   | "resources"
   | "connections"
   | "partners"
+  | "consultants"
+  | "community"
   | "family"
   | "billing"
   | "transactions"
+  | "bookings"
   | "settings";
 
 export type NavItem = {
