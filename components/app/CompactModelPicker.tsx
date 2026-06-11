@@ -32,10 +32,21 @@
  * Used by both the right-rail AgentChat (dark) and StrategistClient (light).
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/cn";
 
 type Tier = "free" | "paid" | "local";
+
+/** Speed/quality preset — mirrors RouteMode on the server. */
+export type CmpRouteMode = "fast" | "balanced" | "advanced" | "reasoning";
+
+const ROUTE_MODES: Array<{ id: CmpRouteMode; label: string; hint: string }> = [
+  { id: "fast",      label: "Fast",      hint: "Lowest latency" },
+  { id: "balanced",  label: "Balanced",  hint: "Smart default" },
+  { id: "advanced",  label: "Advanced",  hint: "Strongest models" },
+  { id: "reasoning", label: "Reasoning", hint: "Multi-step thinking" },
+];
 
 export type CmpModel = {
   providerId: string;
@@ -70,6 +81,9 @@ type Props = {
   modeChip?: string;
   /** Anchor direction. Default "down". */
   direction?: "up" | "down";
+  /** Speed/quality preset segment (Fast/Balanced/Advanced/Reasoning). */
+  routeMode?: CmpRouteMode;
+  setRouteMode?: (m: CmpRouteMode) => void;
 };
 
 const MAX_SHORTCUT = 9;
@@ -77,6 +91,7 @@ const MAX_SHORTCUT = 9;
 export function CompactModelPicker({
   model, setModel, availableModels, providers, allowPaid, setAllowPaid,
   offline, setOffline, onRefresh, theme, modeChip, direction = "down",
+  routeMode, setRouteMode,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -203,10 +218,16 @@ export function CompactModelPicker({
       </button>
 
       {/* POPOVER */}
+      <AnimatePresence>
       {open && (
-        <div
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: direction === "up" ? 6 : -6 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.97, y: direction === "up" ? 4 : -4 }}
+          transition={{ type: "spring", stiffness: 480, damping: 32, mass: 0.7 }}
+          style={{ transformOrigin: direction === "up" ? "bottom right" : "top right" }}
           className={cn(
-            "absolute z-30 right-0 w-[280px] rounded-xl shadow-xl overflow-hidden",
+            "absolute z-30 right-0 w-[290px] rounded-xl shadow-xl overflow-hidden",
             direction === "up" ? "bottom-full mb-1.5" : "top-full mt-1.5",
             t.popover,
           )}
@@ -219,6 +240,41 @@ export function CompactModelPicker({
               <Kbd theme={theme}>I</Kbd>
             </div>
           </div>
+
+          {/* Speed/quality preset — animated segment */}
+          {routeMode && setRouteMode && (
+            <div className={cn("px-2.5 pt-2 pb-2 border-b", t.divider)}>
+              <div className={cn("grid grid-cols-4 gap-0.5 rounded-lg p-0.5", t.segmentBg)}>
+                {ROUTE_MODES.map((m) => {
+                  const active = routeMode === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setRouteMode(m.id)}
+                      title={m.hint}
+                      className={cn(
+                        "relative rounded-md px-1 py-1.5 text-[10.5px] font-semibold transition-colors",
+                        active ? t.segmentActiveText : t.segmentText,
+                      )}
+                    >
+                      {active && (
+                        <motion.span
+                          layoutId={`cmp-mode-pill-${theme}`}
+                          className={cn("absolute inset-0 rounded-md", t.segmentPill)}
+                          transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                        />
+                      )}
+                      <span className="relative">{m.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className={cn("mt-1.5 px-1 text-[10px]", t.toggleHint)}>
+                {ROUTE_MODES.find((m) => m.id === routeMode)?.hint} — steers Auto and fallbacks.
+              </div>
+            </div>
+          )}
 
           {/* Default / Auto */}
           <ListRow
@@ -246,6 +302,7 @@ export function CompactModelPicker({
                     onMouseEnter={() => setFocusIdx(idx)}
                     onClick={() => { setModel({ providerId: m.providerId, modelId: m.modelId }); setOpen(false); }}
                     label={m.modelLabel}
+                    sub={m.modelId}
                     shortcut={idx <= MAX_SHORTCUT ? String(idx) : undefined}
                     tier={m.tier}
                   />
@@ -278,6 +335,7 @@ export function CompactModelPicker({
                     onMouseEnter={() => setFocusIdx(idx)}
                     onClick={() => { setModel({ providerId: m.providerId, modelId: m.modelId }); setOpen(false); }}
                     label={m.modelLabel}
+                    sub={m.modelId}
                     shortcut={idx <= MAX_SHORTCUT ? String(idx) : undefined}
                     tier={m.tier}
                     legacy
@@ -332,13 +390,14 @@ export function CompactModelPicker({
             <ToggleRow
               theme={theme}
               label="Allow paid"
-              hint="OpenAI etc."
+              hint="OpenAI, Claude etc."
               checked={allowPaid}
               onChange={setAllowPaid}
             />
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -348,7 +407,7 @@ export function CompactModelPicker({
    ════════════════════════════════════════════════════════════════════════ */
 
 function ListRow({
-  theme, active, focused, onClick, onMouseEnter, label, shortcut, tier, legacy, badge, badgeTone,
+  theme, active, focused, onClick, onMouseEnter, label, sub, shortcut, tier, legacy, badge, badgeTone,
 }: {
   theme: "light" | "dark";
   active: boolean;
@@ -356,6 +415,8 @@ function ListRow({
   onClick: () => void;
   onMouseEnter?: () => void;
   label: string;
+  /** Exact model id — revealed under the label while the row is focused/active. */
+  sub?: string;
   shortcut?: string;
   tier?: Tier;
   legacy?: boolean;
@@ -363,6 +424,7 @@ function ListRow({
   badgeTone?: "default" | "muted";
 }) {
   const t = themeClasses(theme);
+  const showSub = !!sub && (focused || active) && sub !== label;
   return (
     <button
       type="button"
@@ -376,7 +438,22 @@ function ListRow({
     >
       {active && <CheckGlyph className={cn("h-3 w-3 shrink-0", t.checkColor)} />}
       {!active && <span className="w-3 shrink-0"/>}
-      <span className={cn("truncate flex-1", t.rowText, legacy && "opacity-70")}>{label}</span>
+      <span className="min-w-0 flex-1">
+        <span className={cn("block truncate", t.rowText, legacy && "opacity-70")}>{label}</span>
+        <AnimatePresence initial={false}>
+          {showSub && (
+            <motion.span
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+              className={cn("block truncate font-mono text-[9.5px]", t.shortcutText)}
+            >
+              {sub}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </span>
       {badge && (
         <span className={cn("text-[9.5px] uppercase tracking-wider font-semibold", badgeTone === "muted" ? t.badgeMuted : t.badgeActive)}>
           {badge}
@@ -483,6 +560,10 @@ function themeClasses(theme: "light" | "dark") {
       toggleHover: "hover:bg-white/[0.04]",
       toggleLabel: "text-paper",
       toggleHint: "text-paper/45",
+      segmentBg: "bg-white/[0.05] ring-1 ring-inset ring-white/[0.08]",
+      segmentText: "text-paper/55 hover:text-paper/85",
+      segmentActiveText: "text-paper",
+      segmentPill: "bg-polaris-500/35 ring-1 ring-inset ring-polaris-400/40",
     };
   }
   // "Light" variant rides the CSS-var palette (paper/ink auto-swap when the
@@ -516,6 +597,10 @@ function themeClasses(theme: "light" | "dark") {
     toggleHover: "hover:bg-paper-soft",
     toggleLabel: "text-ink",
     toggleHint: "text-ink-muted",
+    segmentBg: "bg-paper-soft ring-1 ring-inset ring-polaris-500/10 dark:bg-white/[0.05] dark:ring-white/[0.08]",
+    segmentText: "text-ink-muted hover:text-ink",
+    segmentActiveText: "text-ink dark:text-paper",
+    segmentPill: "bg-paper-card shadow-sm ring-1 ring-inset ring-polaris-500/20 dark:bg-polaris-400/25 dark:ring-polaris-400/40",
   };
 }
 

@@ -12,7 +12,7 @@ import { usePathname } from "next/navigation";
 import { Avatar, Tag } from "./ui";
 import { QuotaModal, resetHintFrom, type QuotaState } from "./QuotaModal";
 import { MarkdownMessage, type CitationSource } from "./MarkdownMessage";
-import { CompactModelPicker } from "./CompactModelPicker";
+import { CompactModelPicker, type CmpRouteMode } from "./CompactModelPicker";
 import type { StrategistChunk } from "@/lib/strategist/schemas";
 import type { StrategistMessage, StrategistSource } from "@/types/app";
 import {
@@ -33,6 +33,7 @@ const MODEL_KEY = "polaris.strategist.model";
 const MODE_KEY = "polaris.strategist.mode";
 const PAID_KEY = "polaris.strategist.allowPaid";
 const OFFLINE_KEY = "polaris.strategist.offline";
+const ROUTE_MODE_KEY = "polaris.strategist.routeMode";
 /** Shared with StrategistClient — both surfaces read/write the same thread. */
 const ACTIVE_THREAD_KEY = "polaris.chat.activeThread";
 const WIDTH_KEY = "polaris.strategist.railWidth";
@@ -81,8 +82,11 @@ export function AgentChat({ studentInitials, pathLabel, contextChips = [] }: Pro
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [model, setModel] = useState<ModelChoice>("auto");
   const [mode, setMode] = useState<Mode>("general");
+  const [routeMode, setRouteMode] = useState<CmpRouteMode>("balanced");
   const [allowPaid, setAllowPaid] = useState(false);
   const [offline, setOffline] = useState(false);
+  // Guards the server write-through: skip until the saved pref has loaded.
+  const prefLoadedRef = useRef(false);
   const [routeInfo, setRouteInfo] = useState<{ provider: string; model: string; reason: string } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
@@ -121,7 +125,9 @@ export function AgentChat({ studentInitials, pathLabel, contextChips = [] }: Pro
     return () => aside.removeEventListener("wheel", onWheel);
   }, []);
 
-  // Hydrate persisted picker state.
+  // Hydrate persisted picker state: localStorage first (instant), then the
+  // server-saved preference (source of truth — follows the user across
+  // devices). Only after the server answer do we start writing back.
   useEffect(() => {
     try {
       const m = localStorage.getItem(MODEL_KEY);
@@ -129,14 +135,53 @@ export function AgentChat({ studentInitials, pathLabel, contextChips = [] }: Pro
       else setModel(JSON.parse(m) as ModelChoice);
       const md = localStorage.getItem(MODE_KEY) as Mode | null;
       if (md && (MODES.some((x) => x.id === md))) setMode(md);
+      const rm = localStorage.getItem(ROUTE_MODE_KEY) as CmpRouteMode | null;
+      if (rm && ["fast", "balanced", "advanced", "reasoning"].includes(rm)) setRouteMode(rm);
       setAllowPaid(localStorage.getItem(PAID_KEY) === "true");
       setOffline(localStorage.getItem(OFFLINE_KEY) === "true");
     } catch { /* ignore */ }
+
+    let cancelled = false;
+    fetch("/api/account/model-pref", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled) return;
+        const pref = d?.pref;
+        if (pref) {
+          setModel(pref.choice === "auto" ? "auto" : (pref.choice as ModelChoice));
+          setRouteMode(pref.mode as CmpRouteMode);
+          setAllowPaid(!!pref.allowPaid);
+          setOffline(!!pref.offline);
+        }
+      })
+      .catch(() => { /* offline/unauthenticated — local state stands */ })
+      .finally(() => { if (!cancelled) prefLoadedRef.current = true; });
+    return () => { cancelled = true; };
   }, []);
   useEffect(() => { localStorage.setItem(MODEL_KEY, model === "auto" ? "auto" : JSON.stringify(model)); }, [model]);
   useEffect(() => { localStorage.setItem(MODE_KEY, mode); }, [mode]);
+  useEffect(() => { localStorage.setItem(ROUTE_MODE_KEY, routeMode); }, [routeMode]);
   useEffect(() => { localStorage.setItem(PAID_KEY, String(allowPaid)); }, [allowPaid]);
   useEffect(() => { localStorage.setItem(OFFLINE_KEY, String(offline)); }, [offline]);
+
+  // Write-through: debounce-save the preference server-side so it persists
+  // across devices and steers server jobs (roadmap generation, replans).
+  useEffect(() => {
+    if (!prefLoadedRef.current) return;
+    const t = setTimeout(() => {
+      void fetch("/api/account/model-pref", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          choice: model === "auto" ? "auto" : model,
+          mode: routeMode,
+          allowPaid,
+          offline,
+        }),
+      }).catch(() => { /* best-effort */ });
+    }, 600);
+    return () => clearTimeout(t);
+  }, [model, routeMode, allowPaid, offline]);
 
   // Fetch available providers + models. Also re-probes Ollama when called.
   const refreshProviders = useCallback(async (opts: { reprobeOllama?: boolean } = {}) => {
@@ -359,6 +404,7 @@ export function AgentChat({ studentInitials, pathLabel, contextChips = [] }: Pro
       const body: Record<string, unknown> = {
         message: text,
         mode,
+        routeMode,
         offline,
         allowPaid,
         // Live roadmap context: focused node + recent events from the store.
@@ -451,7 +497,7 @@ export function AgentChat({ studentInitials, pathLabel, contextChips = [] }: Pro
       setThinking(null);
       abortRef.current = null;
     }
-  }, [draft, streaming, mode, model, offline, allowPaid, ensureThread, persistMessage]);
+  }, [draft, streaming, mode, model, routeMode, offline, allowPaid, ensureThread, persistMessage]);
 
   function stop() { abortRef.current?.abort(); }
 
@@ -549,6 +595,8 @@ export function AgentChat({ studentInitials, pathLabel, contextChips = [] }: Pro
           setOffline={setOffline}
           onRefresh={() => refreshProviders({ reprobeOllama: true })}
           modeChip={mode[0].toUpperCase() + mode.slice(1)}
+          routeMode={routeMode}
+          setRouteMode={setRouteMode}
         />
       </div>
 

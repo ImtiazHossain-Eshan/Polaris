@@ -19,6 +19,7 @@ import { sseHeaders, strategistStream } from "@/lib/strategist/stream";
 import { getProfile, getLatestRoadmap, getRoadmapV2 } from "@/lib/db/collections";
 import { roadmapContextLines } from "@/lib/roadmap/generate";
 import { integrationContextLines } from "@/lib/integrations/service";
+import { getAiPref, prefToRoute } from "@/lib/llm/prefs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -78,16 +79,21 @@ export async function POST(req: Request) {
     // Connected-tool insights (GitHub portfolio health, Codeforces weak tags…)
     recentMilestones.push(...integrationLines);
 
+    // When the client doesn't send explicit routing, fall back to the user's
+    // saved preference (same doc the picker persists) so the choice follows
+    // them across devices and stale clients.
+    const saved = prefToRoute(await getAiPref(user.id));
     const stream = strategistStream({
       userId: user.id,
       profile,
       recentMilestones,
       userMessage: body.message,
       mode: body.mode,
-      preferred: body.model,
-      autoSelect: body.autoSelect,
-      offline: body.offline,
-      allowPaid: body.allowPaid,
+      routeMode: body.routeMode ?? saved.mode,
+      preferred: body.model ?? saved.preferred,
+      autoSelect: body.autoSelect ?? (body.model ? undefined : saved.autoSelect),
+      offline: body.offline ?? saved.offline,
+      allowPaid: body.allowPaid ?? saved.allowPaid,
       abortSignal: req.signal,
     });
 

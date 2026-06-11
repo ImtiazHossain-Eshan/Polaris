@@ -10,6 +10,7 @@
  */
 
 import { geminiProvider } from "./gemini";
+import { anthropicProvider } from "./anthropic";
 import {
   groqProvider,
   openAIProvider,
@@ -21,6 +22,7 @@ import type { LLMProvider, ModelDescriptor, ResolvedModel } from "./types";
 
 export const ALL_PROVIDERS: LLMProvider[] = [
   geminiProvider,
+  anthropicProvider,
   groqProvider,
   openRouterProvider,
   togetherProvider,

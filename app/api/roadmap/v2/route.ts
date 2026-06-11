@@ -97,7 +97,7 @@ export const POST = withErrorHandling(async (req) => {
 
   await upsertProfile(session.id, profile);
 
-  const doc = await generateRoadmap(profile, config);
+  const doc = await generateRoadmap(profile, config, { userId: session.id });
   await saveRoadmapV2(session.id, doc);
   return ok({ doc });
 });

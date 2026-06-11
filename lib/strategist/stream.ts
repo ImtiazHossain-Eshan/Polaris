@@ -15,6 +15,7 @@ import { extractFactsFromExchange } from "./memory";
 import type { StrategistChunk } from "./schemas";
 import type { StudentProfile } from "@/lib/profile";
 import type { StrategistMode } from "./profiles";
+import type { RouteMode } from "@/lib/llm/providers/types";
 
 type StreamInput = {
   userId: string;
@@ -22,6 +23,7 @@ type StreamInput = {
   recentMilestones: string[];
   userMessage: string;
   mode: StrategistMode;
+  routeMode?: RouteMode;
   preferred?: { providerId: string; modelId: string };
   autoSelect?: boolean;
   offline?: boolean;
@@ -53,6 +55,7 @@ export function strategistStream(input: StreamInput): ReadableStream<Uint8Array>
             recentMilestones: input.recentMilestones,
             userMessage: input.userMessage,
             mode: input.mode,
+            routeMode: input.routeMode,
             preferred: input.preferred,
             autoSelect: input.autoSelect,
             offline: input.offline,
