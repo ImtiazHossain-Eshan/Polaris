@@ -9,10 +9,15 @@ export const NAV: NavItem[] = [
   { id: "resources",    label: "Resources",    hint: "Library & notes",       shortcut: "G L" },
   { id: "connections",  label: "Connections",  hint: "Notion · Obsidian",     shortcut: "G C", minPlan: "pro" },
   { id: "partners",     label: "Partners",     hint: "Offers · marketplace",  shortcut: "G P", minPlan: "pro" },
+  // Consultants & Community are deliberately plan-free: every student can
+  // hire verified help and join the community regardless of subscription.
+  { id: "consultants",  label: "Consultants",  hint: "Verified mentors",      shortcut: "G K" },
+  { id: "community",    label: "Community",    hint: "Student channels",      shortcut: "G M" },
   { id: "family",       label: "Family",       hint: "Parents · partners",    shortcut: "G F" },
 ];
 
 export const NAV_FOOTER: NavItem[] = [
+  { id: "bookings",     label: "Bookings",     hint: "Your sessions",    shortcut: "G O" },
   { id: "billing",      label: "Billing",      hint: "Plan & invoices", shortcut: "G B" },
   { id: "transactions", label: "Transactions", hint: "Payment history",  shortcut: "G T" },
   { id: "settings",     label: "Settings",     hint: "Account",          shortcut: "G S" },

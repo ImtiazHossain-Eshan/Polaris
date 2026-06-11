@@ -27,6 +27,9 @@ const PROTECTED = [
   "/resources",
   "/connections",
   "/partners",
+  "/consultants",
+  "/community",
+  "/bookings",
   "/settings",
 ];
 
@@ -71,6 +74,9 @@ export const config = {
     "/resources/:path*",
     "/connections/:path*",
     "/partners/:path*",
+    "/consultants/:path*",
+    "/community/:path*",
+    "/bookings/:path*",
     "/settings/:path*",
   ],
 };
