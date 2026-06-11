@@ -40,22 +40,14 @@ type AnyDict = {
     step4Title: string;
     step4: string;
   };
+  // Plan names, prices, and feature lists come from the central catalog
+  // (lib/billing/plans.ts) — the i18n layer only holds section chrome.
   pricing: {
     eyebrow: string;
     title: string;
-    monthly: string;
     ctaFree: string;
     ctaPro: string;
     ctaElite: string;
-    free: { name: string; price: string; tagline: string; features: readonly string[] };
-    pro: {
-      name: string;
-      price: string;
-      tagline: string;
-      features: readonly string[];
-      badge: string;
-    };
-    elite: { name: string; price: string; tagline: string; features: readonly string[] };
   };
   onboard: {
     title: string;
@@ -158,47 +150,9 @@ export const strings: Record<Lang, AnyDict> = {
     pricing: {
       eyebrow: "Pricing",
       title: "Strategy at every tier.",
-      monthly: "/ month",
       ctaFree: "Start free",
       ctaPro: "Get Pro",
       ctaElite: "Go Elite",
-      free: {
-        name: "Free",
-        price: "$0",
-        tagline: "Get oriented.",
-        features: [
-          "University & scholarship directory",
-          "Acceptance-rate benchmarks",
-          "Public requirement summaries",
-          "Community resources",
-        ],
-      },
-      pro: {
-        name: "Polaris Pro",
-        price: "$19",
-        tagline: "Your personal AI mentor.",
-        features: [
-          "AI-generated 6–18 month roadmap",
-          "Acceptance probability + factor breakdown",
-          "Milestone tracking & smart reminders",
-          "Accepted-student case studies",
-          "Profile gap analysis",
-        ],
-        badge: "Most popular",
-      },
-      elite: {
-        name: "Polaris Elite",
-        price: "$49",
-        tagline: "The full strategy suite.",
-        features: [
-          "Real-time adaptive replanning",
-          "Deep benchmarking vs. admits",
-          "AI strategy reports + scenario sims",
-          "Curated professor & research lists",
-          "Parent / partner dashboards",
-          "Priority Bangla support",
-        ],
-      },
     },
     onboard: {
       title: "Build my roadmap",
@@ -312,47 +266,9 @@ export const strings: Record<Lang, AnyDict> = {
     pricing: {
       eyebrow: "প্রাইসিং",
       title: "প্রতিটি স্তরে কৌশল।",
-      monthly: "/ মাস",
       ctaFree: "ফ্রি শুরু করুন",
       ctaPro: "Pro নিন",
       ctaElite: "Elite নিন",
-      free: {
-        name: "ফ্রি",
-        price: "$০",
-        tagline: "শুরু করুন।",
-        features: [
-          "বিশ্ববিদ্যালয় ও স্কলারশিপ ডিরেক্টরি",
-          "অ্যাকসেপ্ট্যান্স-রেট বেঞ্চমার্ক",
-          "পাবলিক রিকোয়ারমেন্ট সারাংশ",
-          "কমিউনিটি রিসোর্স",
-        ],
-      },
-      pro: {
-        name: "Polaris Pro",
-        price: "$১৯",
-        tagline: "আপনার ব্যক্তিগত এআই মেন্টর।",
-        features: [
-          "৬–১৮ মাসের এআই-জেনারেটেড রোডম্যাপ",
-          "অ্যাকসেপ্ট্যান্স প্রবেবিলিটি + ফ্যাক্টর ব্রেকডাউন",
-          "মাইলস্টোন ট্র্যাকিং ও স্মার্ট রিমাইন্ডার",
-          "গৃহীত শিক্ষার্থীদের কেস স্টাডি",
-          "প্রোফাইল গ্যাপ অ্যানালাইসিস",
-        ],
-        badge: "সবচেয়ে জনপ্রিয়",
-      },
-      elite: {
-        name: "Polaris Elite",
-        price: "$৪৯",
-        tagline: "সম্পূর্ণ কৌশল স্যুট।",
-        features: [
-          "রিয়েল-টাইম অ্যাডাপটিভ রিপ্ল্যানিং",
-          "ভর্তি হওয়াদের সাথে গভীর বেঞ্চমার্কিং",
-          "এআই স্ট্র্যাটেজি রিপোর্ট + সিনারিও সিম",
-          "কিউরেটেড প্রফেসর ও গবেষণা তালিকা",
-          "অভিভাবক / পার্টনার ড্যাশবোর্ড",
-          "অগ্রাধিকার বাংলা সাপোর্ট",
-        ],
-      },
     },
     onboard: {
       title: "আমার রোডম্যাপ বানান",

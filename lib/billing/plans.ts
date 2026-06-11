@@ -1,14 +1,31 @@
 /**
- * Polaris plan catalog — the single source of truth for pricing.
+ * Polaris plan catalog — the single source of truth for pricing AND plan
+ * promises. Used by the landing pricing section, /billing, the checkout
+ * flow, and the feature-gating layer (lib/features.ts derives its limits
+ * from here). Don't hardcode plan text anywhere else.
+ *
+ * Honesty rules:
+ *   • `features` lists only what WORKS today for that plan (verified against
+ *     the real gates: requirePlan pages, rate-limit budgets, connection
+ *     caps — see docs/PLAN_VERIFICATION.md).
+ *   • Unbuilt promises live in `comingSoon` and always render with a
+ *     "Soon" tag — never as active benefits.
  *
  * Client-safe (no server imports). Amounts are minor units: USD cents and
- * BDT paisa. Yearly pricing = 10 months (two free). Feature lists mirror the
- * real plan gates (`requirePlan`) across the app — don't list features that
- * don't exist.
+ * BDT paisa. Yearly pricing = 10 months (two free).
  */
 
 export type PlanId = "free" | "pro" | "elite";
 export type BillingCycle = "monthly" | "yearly";
+
+export type PlanLimits = {
+  /** Strategist messages per 5-minute window (mirrors lib/ratelimit.ts). */
+  strategistPer5Min: number;
+  /** Max connected integrations (0 = Connections hub locked). */
+  maxConnections: number;
+  /** Active roadmaps (the v2 engine keeps one living doc per user). */
+  activeRoadmaps: number;
+};
 
 export type PlanDef = {
   id: PlanId;
@@ -17,7 +34,16 @@ export type PlanDef = {
   audience: string;
   usd: { monthly: number; yearly: number };
   bdt: { monthly: number; yearly: number };
+  /** Implemented, working features — verified against real gates. */
   features: string[];
+  /** Bengali translations of `features` (same order). */
+  featuresBn: string[];
+  /** Promised but not yet built — always rendered with a "Soon" tag. */
+  comingSoon?: string[];
+  comingSoonBn?: string[];
+  limits: PlanLimits;
+  /** Shown next to the yearly price. */
+  yearlyNote?: string;
   popular?: boolean;
   accent: "ink" | "polaris" | "aurora";
 };
@@ -31,11 +57,24 @@ export const PLAN_CATALOG: PlanDef[] = [
     usd: { monthly: 0, yearly: 0 },
     bdt: { monthly: 0, yearly: 0 },
     features: [
-      "1 active roadmap with weekly tasks",
+      "University & scholarship directory",
+      "Acceptance-rate benchmarks",
+      "Public requirement summaries",
+      "Community resources & knowledge hub",
+      "1 active roadmap with weekly tasks & replans",
       "Strategist — 10 messages / 5 min",
       "Deadline tracking & family view",
-      "Core resource library",
     ],
+    featuresBn: [
+      "বিশ্ববিদ্যালয় ও স্কলারশিপ ডিরেক্টরি",
+      "অ্যাকসেপ্টেন্স-রেট বেঞ্চমার্ক",
+      "পাবলিক রিকোয়ারমেন্ট সারাংশ",
+      "কমিউনিটি রিসোর্স ও নলেজ হাব",
+      "১টি সক্রিয় রোডম্যাপ — সাপ্তাহিক টাস্ক ও রিপ্ল্যান",
+      "স্ট্র্যাটেজিস্ট — ৫ মিনিটে ১০ মেসেজ",
+      "ডেডলাইন ট্র্যাকিং ও ফ্যামিলি ভিউ",
+    ],
+    limits: { strategistPer5Min: 10, maxConnections: 0, activeRoadmaps: 1 },
     accent: "ink",
   },
   {
@@ -46,13 +85,21 @@ export const PLAN_CATALOG: PlanDef[] = [
     usd: { monthly: 500, yearly: 4900 },     // $5 / $49
     bdt: { monthly: 55000, yearly: 549000 }, // ৳550 / ৳5,490
     features: [
-      "Unlimited roadmaps + dynamic replans",
-      "Full Strategist sync & score analysis",
-      "Universities with fit bands + compare",
-      "Integration hub (GitHub, Codeforces…)",
-      "Partner marketplace & knowledge hub",
-      "Probability engine",
+      "Everything in Free",
+      "3× Strategist budget — 30 messages / 5 min",
+      "Integration hub — GitHub, Codeforces & more",
+      "Partner marketplace — matched student offers",
+      "Up to 6 connected tools feeding your roadmap",
     ],
+    featuresBn: [
+      "ফ্রি-র সবকিছু",
+      "৩× স্ট্র্যাটেজিস্ট বাজেট — ৫ মিনিটে ৩০ মেসেজ",
+      "ইন্টিগ্রেশন হাব — GitHub, Codeforces সহ",
+      "পার্টনার মার্কেটপ্লেস — ম্যাচ করা অফার",
+      "৬টি পর্যন্ত কানেক্টেড টুল",
+    ],
+    limits: { strategistPer5Min: 30, maxConnections: 6, activeRoadmaps: 1 },
+    yearlyNote: "2 months free",
     popular: true,
     accent: "polaris",
   },
@@ -65,11 +112,26 @@ export const PLAN_CATALOG: PlanDef[] = [
     bdt: { monthly: 169000, yearly: 1690000 }, // ৳1,690 / ৳16,900
     features: [
       "Everything in Pro",
-      "Deep benchmarking vs admitted profiles",
-      "Faculty + recommender lists",
-      "Priority Strategist queue",
-      "Advanced analytics & streak insights",
+      "6× Strategist budget — 60 messages / 5 min",
+      "Unlimited tool connections",
     ],
+    featuresBn: [
+      "প্রো-র সবকিছু",
+      "৬× স্ট্র্যাটেজিস্ট বাজেট — ৫ মিনিটে ৬০ মেসেজ",
+      "আনলিমিটেড টুল কানেকশন",
+    ],
+    comingSoon: [
+      "Deep benchmarking vs admitted profiles",
+      "Faculty & recommender lists",
+      "Priority Bangla support",
+    ],
+    comingSoonBn: [
+      "ভর্তি-প্রোফাইলের সাথে ডিপ বেঞ্চমার্কিং",
+      "ফ্যাকাল্টি ও রেকমেন্ডার তালিকা",
+      "প্রায়োরিটি বাংলা সাপোর্ট",
+    ],
+    limits: { strategistPer5Min: 60, maxConnections: 99, activeRoadmaps: 1 },
+    yearlyNote: "2 months free",
     accent: "aurora",
   },
 ];

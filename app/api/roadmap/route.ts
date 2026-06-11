@@ -3,7 +3,7 @@ import { searchDocs } from "@/lib/rag/search";
 import { embedText, generateRoadmap, hasGeminiKey } from "@/lib/llm/gemini";
 import { buildFallbackRoadmap } from "@/lib/fallback-roadmap";
 import { ok, withErrorHandling, parseJson } from "@/lib/api/respond";
-import { requireSession, requirePlan } from "@/lib/authz";
+import { requireSession } from "@/lib/authz";
 import { roadmapBodySchema } from "@/lib/validation/schemas";
 import {
   upsertProfile,
@@ -61,8 +61,9 @@ export const GET = withErrorHandling(async () => {
 });
 
 export const POST = withErrorHandling(async (req) => {
-  // Roadmap generation is a Pro feature (strict paywall).
-  const user = await requirePlan("pro");
+  // Roadmap generation is part of the Free plan (matches the catalog +
+  // the v2 engine, which is session-gated and rate-limited).
+  const user = await requireSession();
   const { profile } = roadmapBodySchema.parse(await parseJson(req));
 
   await upsertProfile(user.id, profile);

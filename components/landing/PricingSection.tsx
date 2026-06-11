@@ -1,23 +1,27 @@
 "use client";
 
 /**
- * Pricing — ported from the previous landing page (same i18n strings and
- * checkout flow), restyled to the new motion language: lifted hover, featured
- * glow, staggered reveal.
+ * Pricing — rendered straight from the central plan catalog
+ * (lib/billing/plans.ts), the same source /billing and the feature gates
+ * use, so prices and promises can never drift between surfaces. Bengali
+ * feature lists come from the catalog too. Unbuilt promises render with a
+ * "Soon" tag, never as active benefits.
  */
 
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLang } from "@/lib/i18n/LangProvider";
 import { startCheckout } from "@/components/PlanGate";
+import { PLAN_CATALOG, formatMinor, type BillingCycle, type PlanDef } from "@/lib/billing/plans";
 import { cn } from "@/lib/cn";
 import { SectionIntro, Accent, Dot, Reveal, GCheck, GArrow } from "./shared";
 
 export function PricingSection() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const [cycle, setCycle] = useState<BillingCycle>("monthly");
 
   return (
     <section id="pricing" data-section-theme="light" className="relative bg-paper">
@@ -28,38 +32,49 @@ export function PricingSection() {
           sub={<>Start free — upgrade when the roadmap <Accent>earns it</Accent>.</>}
         />
 
-        <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-5 text-left items-stretch">
-          <PricingCard
-            tier="free"
-            name={t.pricing.free.name}
-            price={t.pricing.free.price}
-            tagline={t.pricing.free.tagline}
-            features={t.pricing.free.features as unknown as string[]}
-            cta={t.pricing.ctaFree}
-            delay={0}
-          />
-          <PricingCard
-            tier="pro"
-            featured
-            badge={t.pricing.pro.badge}
-            name={t.pricing.pro.name}
-            price={t.pricing.pro.price}
-            tagline={t.pricing.pro.tagline}
-            features={t.pricing.pro.features as unknown as string[]}
-            cta={t.pricing.ctaPro}
-            priceSuffix={t.pricing.monthly}
-            delay={0.12}
-          />
-          <PricingCard
-            tier="elite"
-            name={t.pricing.elite.name}
-            price={t.pricing.elite.price}
-            tagline={t.pricing.elite.tagline}
-            features={t.pricing.elite.features as unknown as string[]}
-            cta={t.pricing.ctaElite}
-            priceSuffix={t.pricing.monthly}
-            delay={0.24}
-          />
+        {/* Monthly / yearly toggle — mirrors /billing */}
+        <Reveal delay={0.1}>
+          <div className="mt-10 flex items-center justify-center">
+            <div className="relative inline-flex items-center rounded-full bg-paper-soft ring-1 ring-inset ring-ink/[0.07] p-1">
+              {(["monthly", "yearly"] as const).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setCycle(c)}
+                  className={cn(
+                    "relative rounded-full px-5 py-2 text-[13px] font-semibold capitalize transition-colors",
+                    cycle === c ? "text-ink" : "text-ink-muted hover:text-ink-dim",
+                  )}
+                >
+                  {cycle === c && (
+                    <motion.span
+                      layoutId="landing-cycle-pill"
+                      className="absolute inset-0 rounded-full bg-paper-card shadow-sm ring-1 ring-inset ring-ink/[0.06]"
+                      transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                    />
+                  )}
+                  <span className="relative">{c}</span>
+                  {c === "yearly" && (
+                    <span className="relative ml-1.5 rounded-full bg-aurora-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-aurora-700">
+                      2 months free
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </Reveal>
+
+        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-5 text-left items-stretch">
+          {PLAN_CATALOG.map((def, i) => (
+            <PricingCard
+              key={def.id}
+              def={def}
+              cycle={cycle}
+              lang={lang}
+              cta={def.id === "free" ? t.pricing.ctaFree : def.id === "pro" ? t.pricing.ctaPro : t.pricing.ctaElite}
+              delay={i * 0.12}
+            />
+          ))}
         </div>
 
         <Reveal delay={0.3}>
@@ -77,28 +92,35 @@ export function PricingSection() {
 }
 
 function PricingCard({
-  tier, name, price, tagline, features, cta, featured, badge, priceSuffix, delay,
+  def, cycle, lang, cta, delay,
 }: {
-  tier: "free" | "pro" | "elite";
-  name: string; price: string; tagline: string;
-  features: string[]; cta: string;
-  featured?: boolean; badge?: string; priceSuffix?: string; delay: number;
+  def: PlanDef;
+  cycle: BillingCycle;
+  lang: string;
+  cta: string;
+  delay: number;
 }) {
   const router = useRouter();
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
 
+  const featured = !!def.popular;
+  const usd = def.usd[cycle];
+  const bdt = def.bdt[cycle];
+  const features = lang === "bn" && def.featuresBn.length ? def.featuresBn : def.features;
+  const comingSoon = lang === "bn" && def.comingSoonBn?.length ? def.comingSoonBn : def.comingSoon;
+
   async function handleClick() {
-    if (tier === "free") {
+    if (def.id === "free") {
       router.push(session ? "/roadmap" : "/signup");
       return;
     }
     if (!session) {
-      router.push(`/signup?next=upgrade&tier=${tier}`);
+      router.push(`/signup?next=upgrade&tier=${def.id}`);
       return;
     }
     setLoading(true);
-    try { await startCheckout(tier); } catch { setLoading(false); router.push("/billing"); }
+    try { await startCheckout(def.id as "pro" | "elite"); } catch { setLoading(false); router.push("/billing"); }
   }
 
   return (
@@ -116,28 +138,47 @@ function PricingCard({
       whileHover={{ y: -7 }}
     >
       {featured && (
-        <div
-          aria-hidden
-          className="absolute -inset-px rounded-3xl pointer-events-none"
-          style={{ boxShadow: "0 0 50px -12px rgba(196,125,78,0.45)" }}
-        />
+        <>
+          <div
+            aria-hidden
+            className="absolute -inset-px rounded-3xl pointer-events-none"
+            style={{ boxShadow: "0 0 50px -12px rgba(196,125,78,0.45)" }}
+          />
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-signal-rose px-3 py-1 text-[10.5px] font-semibold uppercase tracking-[0.18em] text-white shadow-md">
+            Most popular
+          </div>
+        </>
       )}
-      {badge && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-signal-rose px-3 py-1 text-[10.5px] font-semibold uppercase tracking-[0.18em] text-white shadow-md">
-          {badge}
-        </div>
-      )}
-      <div className={cn("text-sm font-medium", featured ? "text-paper/70" : "text-ink")}>{name}</div>
-      <div className="mt-3 flex items-baseline gap-1">
-        <span className={cn("font-sans text-4xl sm:text-5xl font-bold leading-none tabular-nums", featured ? "text-paper" : "text-ink")}>
-          {price}
-        </span>
-        {priceSuffix && (
-          <span className={cn("text-sm", featured ? "text-paper/55" : "text-ink-muted")}>{priceSuffix}</span>
-        )}
+
+      <div className={cn("text-sm font-medium", featured ? "text-paper/70" : "text-ink")}>{def.name}</div>
+      <div className="mt-3 min-h-[64px]">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={cycle}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="flex items-baseline gap-1">
+              <span className={cn("font-sans text-4xl sm:text-5xl font-bold leading-none tabular-nums", featured ? "text-paper" : "text-ink")}>
+                {usd === 0 ? "$0" : formatMinor(usd, "USD")}
+              </span>
+              <span className={cn("text-sm", featured ? "text-paper/55" : "text-ink-muted")}>
+                {usd === 0 ? "forever" : cycle === "monthly" ? "/ month" : "/ year"}
+              </span>
+            </div>
+            {bdt > 0 && (
+              <div className={cn("mt-1 text-[11.5px] font-mono", featured ? "text-paper/50" : "text-ink-muted")}>
+                {formatMinor(bdt, "BDT")} {cycle === "monthly" ? "/ mo" : "/ yr"} with bKash
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
-      <div className={cn("mt-2 text-sm", featured ? "text-paper/65" : "text-ink-dim")}>{tagline}</div>
+      <div className={cn("mt-2 text-sm", featured ? "text-paper/65" : "text-ink-dim")}>{def.tagline}</div>
       <div className={cn("my-6 h-px", featured ? "bg-white/10" : "bg-ink/10")} />
+
       <ul className={cn("space-y-2.5 text-sm flex-1", featured ? "text-paper/80" : "text-ink-dim")}>
         {features.map((f) => (
           <li key={f} className="flex gap-2.5">
@@ -147,7 +188,26 @@ function PricingCard({
             <span>{f}</span>
           </li>
         ))}
+        {comingSoon?.map((f) => (
+          <li key={f} className={cn("flex gap-2.5", featured ? "text-paper/45" : "text-ink-muted")}>
+            <span className="mt-0.5 shrink-0 opacity-60" aria-hidden>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+              </svg>
+            </span>
+            <span>
+              {f}
+              <span className={cn(
+                "ml-1.5 align-middle rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-[0.12em] font-bold ring-1 ring-inset",
+                featured ? "bg-white/[0.07] text-paper/55 ring-white/15" : "bg-paper-soft text-ink-muted ring-ink/10",
+              )}>
+                Soon
+              </span>
+            </span>
+          </li>
+        ))}
       </ul>
+
       <button
         onClick={handleClick}
         disabled={loading}
