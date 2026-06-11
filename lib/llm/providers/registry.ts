@@ -43,21 +43,22 @@ export type ProviderInfo = {
 
 /** Build the list of providers and their models for the dropdown. */
 export async function listAvailableProviders(): Promise<ProviderInfo[]> {
-  const out: ProviderInfo[] = [];
-  for (const p of ALL_PROVIDERS) {
-    const configured = await Promise.resolve(p.isConfigured());
-    const models = configured
-      ? await Promise.resolve(p.listModels())
-      : await Promise.resolve(p.listModels()).catch(() => []);
-    out.push({
-      id: p.id,
-      name: p.name,
-      defaultTier: p.defaultTier,
-      configured,
-      models,
-    });
-  }
-  return out;
+  const results = await Promise.all(
+    ALL_PROVIDERS.map(async (p): Promise<ProviderInfo> => {
+      const configured = await Promise.resolve(p.isConfigured());
+      const models = configured
+        ? await Promise.resolve(p.listModels())
+        : await Promise.resolve(p.listModels()).catch(() => []);
+      return {
+        id: p.id,
+        name: p.name,
+        defaultTier: p.defaultTier,
+        configured,
+        models,
+      };
+    }),
+  );
+  return results;
 }
 
 /**

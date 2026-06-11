@@ -93,18 +93,22 @@ async function listConfiguredCandidates(
   allowPaid: boolean,
   onlyTiers?: ProviderTier[],
 ): Promise<Candidate[]> {
-  const out: Candidate[] = [];
-  for (const p of ALL_PROVIDERS) {
-    const ok = await Promise.resolve(p.isConfigured());
-    if (!ok) continue;
-    const models = await Promise.resolve(p.listModels());
-    for (const m of models) {
-      if (onlyTiers && !onlyTiers.includes(m.tier)) continue;
-      const score = scoreModel(m, task, allowPaid);
-      if (score < 0) continue;
-      out.push({ provider: p, model: m, score });
-    }
-  }
+  const nested = await Promise.all(
+    ALL_PROVIDERS.map(async (p): Promise<Candidate[]> => {
+      const ok = await Promise.resolve(p.isConfigured());
+      if (!ok) return [];
+      const models = await Promise.resolve(p.listModels());
+      const candidates: Candidate[] = [];
+      for (const m of models) {
+        if (onlyTiers && !onlyTiers.includes(m.tier)) continue;
+        const score = scoreModel(m, task, allowPaid);
+        if (score < 0) continue;
+        candidates.push({ provider: p, model: m, score });
+      }
+      return candidates;
+    }),
+  );
+  const out = nested.flat();
   out.sort((a, b) => b.score - a.score);
   return out;
 }
