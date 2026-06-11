@@ -90,7 +90,8 @@ export default function OnboardPage() {
       if (!isLoggedIn) {
         window.localStorage.setItem(ROADMAP_KEY, JSON.stringify(data));
       }
-      router.push("/dashboard");
+      // New default authenticated home is the (app) shell at /roadmap.
+      router.push("/roadmap");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setSubmitting(false);

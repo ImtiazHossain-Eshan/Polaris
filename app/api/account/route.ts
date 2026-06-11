@@ -16,6 +16,8 @@ export const GET = withErrorHandling(async () => {
       email: user.email,
       role: user.role ?? "student",
       plan: user.plan ?? "free",
+      phone: user.phone ?? "",
+      avatarUrl: user.avatarUrl ?? "",
       createdAt: user.createdAt,
     },
   });
@@ -23,13 +25,22 @@ export const GET = withErrorHandling(async () => {
 
 export const PATCH = withErrorHandling(async (req) => {
   const session = await requireSession();
-  const { name, currentPassword, newPassword } = accountUpdateSchema.parse(
-    await parseJson(req),
-  );
+  const { name, currentPassword, newPassword, phone, avatarUrl } =
+    accountUpdateSchema.parse(await parseJson(req));
 
-  const fields: { name?: string; password?: string } = {};
+  const fields: {
+    name?: string;
+    password?: string;
+    phone?: string;
+    avatarUrl?: string;
+  } = {};
 
   if (name !== undefined) fields.name = name;
+  if (phone !== undefined) fields.phone = phone;
+  if (avatarUrl !== undefined) {
+    // empty string clears the avatar
+    fields.avatarUrl = avatarUrl;
+  }
 
   if (newPassword) {
     if (!currentPassword) {

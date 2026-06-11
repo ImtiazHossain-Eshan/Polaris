@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { cn } from "@/lib/cn";
 
 type Row = {
@@ -101,22 +102,20 @@ export default function AdminUsersPage() {
                     <div className="text-xs text-ink-muted">{r.email}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <select
+                    <PremiumSelect
                       value={r.role}
-                      onChange={(e) => update(r.id, { role: e.target.value as Row["role"] })}
-                      className="rounded-lg border border-polaris-200 bg-white px-2 py-1 text-xs focus:border-polaris-400 focus:outline-none"
-                    >
-                      {ROLES.map((x) => <option key={x} value={x}>{x}</option>)}
-                    </select>
+                      onChange={(v) => update(r.id, { role: v as Row["role"] })}
+                      size="sm"
+                      options={ROLES.map((x) => ({ value: x, label: x }))}
+                    />
                   </td>
                   <td className="px-4 py-3">
-                    <select
+                    <PremiumSelect
                       value={r.plan}
-                      onChange={(e) => update(r.id, { plan: e.target.value as Row["plan"] })}
-                      className="rounded-lg border border-polaris-200 bg-white px-2 py-1 text-xs focus:border-polaris-400 focus:outline-none"
-                    >
-                      {PLANS.map((x) => <option key={x} value={x}>{x}</option>)}
-                    </select>
+                      onChange={(v) => update(r.id, { plan: v as Row["plan"] })}
+                      size="sm"
+                      options={PLANS.map((x) => ({ value: x, label: x }))}
+                    />
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button

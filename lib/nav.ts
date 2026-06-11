@@ -1,0 +1,23 @@
+import type { NavItem } from "@/types/app";
+
+/** Single source of truth for the new app's left-nav. */
+export const NAV: NavItem[] = [
+  { id: "roadmap",      label: "Roadmap",      hint: "Tasks & milestones",   shortcut: "G R" },
+  { id: "strategist",   label: "Strategist",   hint: "AI agent",              shortcut: "G A" },
+  { id: "deadlines",    label: "Deadlines",    hint: "Calendar",              shortcut: "G D" },
+  { id: "universities", label: "Universities", hint: "Probability engine",    shortcut: "G U", minPlan: "pro" },
+  { id: "resources",    label: "Resources",    hint: "Library & notes",       shortcut: "G L" },
+  { id: "connections",  label: "Connections",  hint: "Notion · Obsidian",     shortcut: "G C", minPlan: "pro" },
+  { id: "partners",     label: "Partners",     hint: "Offers · marketplace",  shortcut: "G P", minPlan: "pro" },
+  { id: "family",       label: "Family",       hint: "Parents · partners",    shortcut: "G F" },
+];
+
+export const NAV_FOOTER: NavItem[] = [
+  { id: "billing",      label: "Billing",      hint: "Plan & invoices", shortcut: "G B" },
+  { id: "transactions", label: "Transactions", hint: "Payment history",  shortcut: "G T" },
+  { id: "settings",     label: "Settings",     hint: "Account",          shortcut: "G S" },
+];
+
+export const NAV_PATH: Record<string, NavItem["id"]> = Object.fromEntries(
+  [...NAV, ...NAV_FOOTER].map(n => [`/${n.id}`, n.id]),
+);

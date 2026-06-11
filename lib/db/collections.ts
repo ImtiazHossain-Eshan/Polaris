@@ -10,8 +10,16 @@ export type Subscription = {
   lsCustomerId?: string;
   lsSubscriptionId?: string;
   variantId?: string;
-  status?: string; // active, cancelled, expired, past_due, etc.
+  status?: string; // active, canceled, expired, past_due, etc.
   renewsAt?: string;
+  /* Sandbox-billing fields — written by /api/transactions/[id]/confirm. */
+  planId?: Plan;
+  billingCycle?: "monthly" | "yearly";
+  startedAt?: string;
+  canceledAt?: string;
+  /** Minor units (cents / paisa) of the last charge. */
+  priceMinor?: number;
+  currency?: string;
 };
 
 export type DbUser = {
@@ -22,6 +30,9 @@ export type DbUser = {
   role: UserRole;
   plan: Plan;
   subscription?: Subscription;
+  /* Optional contact + avatar (editable from /account). */
+  phone?: string;
+  avatarUrl?: string;
   createdAt: Date;
 };
 
@@ -64,8 +75,8 @@ export function toDbMilestones(milestones: RoadmapMilestone[]): DbMilestone[] {
 
 export async function upsertProfile(userId: string, profile: StudentProfile) {
   const db = await getDb();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { _id, ...safeProfile } = profile as StudentProfile & { _id?: unknown };
+  void _id;
   await db.collection<DbProfile>("profiles").updateOne(
     { userId },
     { $set: { ...safeProfile, userId, updatedAt: new Date() } },
@@ -133,6 +144,166 @@ export async function setMilestoneDeadline(
   );
 }
 
+/* ─── Roadmap v2 (tree / skill-map) ─────────────────────────────────────── */
+
+import type { RoadmapDoc } from "@/lib/roadmap/types";
+
+export type DbRoadmapV2 = {
+  _id?: ObjectId;
+  userId: string;
+  doc: RoadmapDoc;
+  updatedAt: Date;
+};
+
+/** One live roadmap per user — replaced wholesale on every mutation. */
+export async function getRoadmapV2(userId: string): Promise<RoadmapDoc | null> {
+  const db = await getDb();
+  const row = await db.collection<DbRoadmapV2>("roadmaps_v2").findOne({ userId });
+  return row?.doc ?? null;
+}
+
+export async function saveRoadmapV2(userId: string, doc: RoadmapDoc): Promise<void> {
+  const db = await getDb();
+  await db.collection<DbRoadmapV2>("roadmaps_v2").updateOne(
+    { userId },
+    { $set: { doc, updatedAt: new Date() } },
+    { upsert: true },
+  );
+}
+
+export async function deleteRoadmapV2(userId: string): Promise<void> {
+  const db = await getDb();
+  await db.collection<DbRoadmapV2>("roadmaps_v2").deleteOne({ userId });
+}
+
+/* ─── Weekly tasks (granular, week-by-week roadmap) ─────────────────────── */
+
+/**
+ * One granular weekly task. The roadmap is rendered week-by-week from these,
+ * each carrying a hands-on practice deliverable, user progress (0–100), a
+ * notes thread, an optional work submission, and the Strategist's review
+ * feedback after completion.
+ */
+export type WeeklyTaskNote = {
+  id: string;
+  author: "user" | "strategist";
+  text: string;
+  at: Date;
+};
+
+export type DbWeeklyTask = {
+  _id?: ObjectId;
+  userId: string;
+  /** 1-based week index in the plan. */
+  week: number;
+  /** Short theme line shared by the week's tasks (e.g. "SAT diagnostics"). */
+  weekTheme: string;
+  /** Short random id (stable across replans for unchanged tasks). */
+  id: string;
+  title: string;
+  /** What to do, written to the student. */
+  summary: string;
+  /** The hands-on exercise / deliverable that closes the task. */
+  practice: string;
+  category: string;
+  priority: "high" | "medium" | "low";
+  status: MilestoneStatus;
+  /** 0–100, user-updated. Status auto-derives at 0 / 1-99 / 100. */
+  progress: number;
+  notes: WeeklyTaskNote[];
+  /** The student's submitted work (free text / links). */
+  submission?: string;
+  /** Strategist's review of the submission. */
+  feedback?: string;
+  feedbackAt?: Date;
+  source: "generated" | "replanned";
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt?: Date;
+};
+
+export function weeklyTaskId(): string {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+export async function listWeeklyTasks(userId: string): Promise<DbWeeklyTask[]> {
+  const db = await getDb();
+  return db
+    .collection<DbWeeklyTask>("weekly_tasks")
+    .find({ userId })
+    .sort({ week: 1, priority: 1, createdAt: 1 })
+    .toArray();
+}
+
+export async function getWeeklyTask(
+  userId: string,
+  taskId: string,
+): Promise<DbWeeklyTask | null> {
+  const db = await getDb();
+  return db.collection<DbWeeklyTask>("weekly_tasks").findOne({ userId, id: taskId });
+}
+
+export async function insertWeeklyTasks(
+  tasks: Array<Omit<DbWeeklyTask, "_id">>,
+): Promise<void> {
+  if (!tasks.length) return;
+  const db = await getDb();
+  await db.collection<DbWeeklyTask>("weekly_tasks").insertMany(tasks.map((t) => ({ ...t })));
+}
+
+/** Replace all NOT-yet-completed tasks in weeks >= fromWeek with a new set. */
+export async function replaceUpcomingWeeklyTasks(
+  userId: string,
+  fromWeek: number,
+  tasks: Array<Omit<DbWeeklyTask, "_id">>,
+): Promise<void> {
+  const db = await getDb();
+  await db.collection<DbWeeklyTask>("weekly_tasks").deleteMany({
+    userId,
+    week: { $gte: fromWeek },
+    status: { $ne: "done" },
+  });
+  if (tasks.length) {
+    await db.collection<DbWeeklyTask>("weekly_tasks").insertMany(tasks.map((t) => ({ ...t })));
+  }
+}
+
+export async function deleteWeeklyTasks(userId: string): Promise<void> {
+  const db = await getDb();
+  await db.collection<DbWeeklyTask>("weekly_tasks").deleteMany({ userId });
+}
+
+export async function updateWeeklyTask(
+  userId: string,
+  taskId: string,
+  patch: Partial<
+    Pick<DbWeeklyTask, "status" | "progress" | "submission" | "feedback" | "feedbackAt" | "completedAt">
+  >,
+): Promise<boolean> {
+  const db = await getDb();
+  const res = await db.collection<DbWeeklyTask>("weekly_tasks").updateOne(
+    { userId, id: taskId },
+    { $set: { ...patch, updatedAt: new Date() } },
+  );
+  return res.matchedCount > 0;
+}
+
+export async function addWeeklyTaskNote(
+  userId: string,
+  taskId: string,
+  note: WeeklyTaskNote,
+): Promise<boolean> {
+  const db = await getDb();
+  const res = await db.collection<DbWeeklyTask>("weekly_tasks").updateOne(
+    { userId, id: taskId },
+    {
+      $push: { notes: note },
+      $set: { updatedAt: new Date() },
+    },
+  );
+  return res.matchedCount > 0;
+}
+
 /* ─── Users ─── */
 
 export async function getUserById(userId: string): Promise<DbUser | null> {
@@ -166,15 +337,451 @@ export async function setUserRole(userId: string, role: UserRole) {
     .updateOne({ _id: new ObjectId(userId) }, { $set: { role } });
 }
 
-/** Update mutable account fields (name / password hash). */
+/** Update mutable account fields (name / password hash / phone / avatarUrl). */
 export async function updateUser(
   userId: string,
-  fields: Partial<Pick<DbUser, "name" | "password">>,
+  fields: Partial<Pick<DbUser, "name" | "password" | "phone" | "avatarUrl">>,
 ) {
   const db = await getDb();
   await db
     .collection<DbUser>("users")
     .updateOne({ _id: new ObjectId(userId) }, { $set: fields });
+}
+
+/* ─── Transactions (simulated payment ledger) ──────────────────────── */
+
+export type PaymentMethod = "card" | "bkash" | "nagad" | "rocket";
+export type TransactionStatus = "pending" | "processing" | "succeeded" | "failed" | "refunded";
+
+export type DbTransaction = {
+  _id?: ObjectId;
+  userId: string;
+  /** Human-readable id we show to the user (POL-XXXX-XXXX). */
+  reference: string;
+  method: PaymentMethod;
+  /** Amount in minor units (cents / paisa) for accuracy. */
+  amount: number;
+  /** ISO currency. We default to USD; BDT for bKash/Nagad/Rocket. */
+  currency: string;
+  /** "Polaris Pro (annual)" etc. */
+  description: string;
+  status: TransactionStatus;
+  /** Last-4 digits for card; phone tail for mobile wallet. */
+  maskedAccount?: string;
+  /** Card brand (visa, mastercard, amex), set only for card. */
+  cardBrand?: string;
+  /** Reason if failed. */
+  failureReason?: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+function makeReference(): string {
+  const seg = () => Math.floor(Math.random() * 9000 + 1000).toString();
+  return `POL-${seg()}-${seg()}`;
+}
+
+export async function createTransaction(
+  row: Omit<DbTransaction, "_id" | "reference" | "status" | "createdAt" | "updatedAt">,
+): Promise<DbTransaction> {
+  const db = await getDb();
+  const now = new Date();
+  const doc: DbTransaction = {
+    ...row,
+    reference: makeReference(),
+    status: "pending",
+    createdAt: now,
+    updatedAt: now,
+  };
+  const res = await db.collection<DbTransaction>("transactions").insertOne(doc);
+  return { ...doc, _id: res.insertedId };
+}
+
+export async function setTransactionStatus(
+  userId: string,
+  txId: string,
+  status: TransactionStatus,
+  failureReason?: string,
+): Promise<DbTransaction | null> {
+  if (!ObjectId.isValid(txId)) return null;
+  const db = await getDb();
+  const now = new Date();
+  const update: Record<string, unknown> = { status, updatedAt: now };
+  if (failureReason) update.failureReason = failureReason;
+  await db
+    .collection<DbTransaction>("transactions")
+    .updateOne({ _id: new ObjectId(txId), userId }, { $set: update });
+  return db
+    .collection<DbTransaction>("transactions")
+    .findOne({ _id: new ObjectId(txId), userId });
+}
+
+export async function listTransactions(userId: string, limit = 100): Promise<DbTransaction[]> {
+  const db = await getDb();
+  return db
+    .collection<DbTransaction>("transactions")
+    .find({ userId })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .toArray();
+}
+
+export async function getTransaction(userId: string, txId: string): Promise<DbTransaction | null> {
+  if (!ObjectId.isValid(txId)) return null;
+  const db = await getDb();
+  return db
+    .collection<DbTransaction>("transactions")
+    .findOne({ _id: new ObjectId(txId), userId });
+}
+
+/* ─── Strategist chat threads + messages (ChatGPT-style history) ────── */
+
+export type ChatRole = "user" | "assistant";
+
+export type ChatSource = {
+  label: string;
+  uri: string;
+  kind: "kb" | "case" | "web" | "profile" | "roadmap";
+};
+
+export type DbChatThread = {
+  _id?: ObjectId;
+  userId: string;
+  title: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lastMessageAt: Date;
+  /** Number of messages currently saved on this thread. */
+  messageCount: number;
+  /** Last mode used on this thread — informational. */
+  lastMode?: "general" | "research" | "study" | "coding";
+};
+
+export type DbChatMessage = {
+  _id?: ObjectId;
+  threadId: string;
+  userId: string;
+  role: ChatRole;
+  text: string;
+  sources?: ChatSource[];
+  /** Provider + model that generated this message (assistant only). */
+  providerId?: string;
+  modelId?: string;
+  mode?: "general" | "research" | "study" | "coding";
+  tokensIn?: number;
+  tokensOut?: number;
+  createdAt: Date;
+};
+
+export async function createThread(
+  userId: string,
+  title = "New chat",
+): Promise<DbChatThread> {
+  const db = await getDb();
+  const now = new Date();
+  const doc: DbChatThread = {
+    userId,
+    title: title.slice(0, 120),
+    createdAt: now,
+    updatedAt: now,
+    lastMessageAt: now,
+    messageCount: 0,
+  };
+  const res = await db.collection<DbChatThread>("chat_threads").insertOne(doc);
+  return { ...doc, _id: res.insertedId };
+}
+
+export async function listThreads(userId: string): Promise<DbChatThread[]> {
+  const db = await getDb();
+  return db
+    .collection<DbChatThread>("chat_threads")
+    .find({ userId })
+    .sort({ lastMessageAt: -1 })
+    .limit(200)
+    .toArray();
+}
+
+export async function getThread(
+  userId: string,
+  threadId: string,
+): Promise<DbChatThread | null> {
+  if (!ObjectId.isValid(threadId)) return null;
+  const db = await getDb();
+  return db
+    .collection<DbChatThread>("chat_threads")
+    .findOne({ _id: new ObjectId(threadId), userId });
+}
+
+export async function renameThread(
+  userId: string,
+  threadId: string,
+  title: string,
+): Promise<boolean> {
+  if (!ObjectId.isValid(threadId)) return false;
+  const db = await getDb();
+  const res = await db
+    .collection<DbChatThread>("chat_threads")
+    .updateOne(
+      { _id: new ObjectId(threadId), userId },
+      { $set: { title: title.slice(0, 120), updatedAt: new Date() } },
+    );
+  return res.matchedCount > 0;
+}
+
+export async function deleteThread(userId: string, threadId: string): Promise<void> {
+  if (!ObjectId.isValid(threadId)) return;
+  const db = await getDb();
+  await Promise.all([
+    db.collection<DbChatThread>("chat_threads").deleteOne({ _id: new ObjectId(threadId), userId }),
+    db.collection<DbChatMessage>("chat_messages").deleteMany({ threadId, userId }),
+  ]);
+}
+
+export async function appendMessage(
+  msg: Omit<DbChatMessage, "_id" | "createdAt">,
+): Promise<DbChatMessage> {
+  const db = await getDb();
+  const now = new Date();
+  const doc: DbChatMessage = { ...msg, createdAt: now };
+  const res = await db.collection<DbChatMessage>("chat_messages").insertOne(doc);
+  // Bump the parent thread's lastMessageAt + messageCount.
+  if (ObjectId.isValid(msg.threadId)) {
+    await db.collection<DbChatThread>("chat_threads").updateOne(
+      { _id: new ObjectId(msg.threadId), userId: msg.userId },
+      {
+        $set: { lastMessageAt: now, updatedAt: now, lastMode: msg.mode },
+        $inc: { messageCount: 1 },
+      },
+    );
+  }
+  return { ...doc, _id: res.insertedId };
+}
+
+export async function getMessages(
+  userId: string,
+  threadId: string,
+  limit = 200,
+): Promise<DbChatMessage[]> {
+  const db = await getDb();
+  return db
+    .collection<DbChatMessage>("chat_messages")
+    .find({ userId, threadId })
+    .sort({ createdAt: 1 })
+    .limit(limit)
+    .toArray();
+}
+
+/* ─── Strategist long-term memory ───────────────────────────────────────── */
+
+/**
+ * Durable facts the Strategist has learned about a single student across
+ * conversations. Stored as an inline `facts` array on a single document per
+ * user (keeps reads cheap — most users will have <100 facts).
+ *
+ * Source: "explicit" means the user typed/edited it themselves; "inferred"
+ * means the LLM extracted it from a conversation. Confidence lets us decay
+ * or rank uncertain inferred facts later.
+ */
+export type MemoryFactCategory =
+  | "goal"
+  | "preference"
+  | "constraint"
+  | "background"
+  | "interest";
+
+export type UserMemoryFact = {
+  id: string;
+  text: string;
+  category: MemoryFactCategory;
+  confidence: number; // 0..1
+  source: "explicit" | "inferred";
+  createdAt: Date;
+};
+
+export type DbUserMemory = {
+  _id?: ObjectId;
+  userId: string;
+  facts: UserMemoryFact[];
+  updatedAt: Date;
+};
+
+/** Reads everything Polaris remembers about a single student. */
+export async function getUserMemory(userId: string): Promise<DbUserMemory | null> {
+  const db = await getDb();
+  return db.collection<DbUserMemory>("user_memory").findOne({ userId });
+}
+
+/**
+ * Appends new facts. Dedupes against existing rows by lowercased text so the
+ * memory store never accumulates obvious duplicates (the LLM extractor is
+ * separately responsible for higher-order semantic dedup).
+ */
+export async function addMemoryFacts(
+  userId: string,
+  facts: UserMemoryFact[],
+): Promise<UserMemoryFact[]> {
+  if (facts.length === 0) return [];
+  const existing = await getUserMemory(userId);
+  const known = new Set((existing?.facts ?? []).map((f) => f.text.trim().toLowerCase()));
+  const fresh = facts.filter((f) => {
+    const key = f.text.trim().toLowerCase();
+    if (key.length < 4 || known.has(key)) return false;
+    known.add(key);
+    return true;
+  });
+  if (fresh.length === 0) return [];
+  const db = await getDb();
+  await db.collection<DbUserMemory>("user_memory").updateOne(
+    { userId },
+    {
+      $push: { facts: { $each: fresh } },
+      $set: { updatedAt: new Date() },
+      $setOnInsert: { userId },
+    },
+    { upsert: true },
+  );
+  return fresh;
+}
+
+/** Removes a single fact by id (user-initiated forget). */
+export async function deleteMemoryFact(
+  userId: string,
+  factId: string,
+): Promise<void> {
+  const db = await getDb();
+  await db
+    .collection<DbUserMemory>("user_memory")
+    .updateOne(
+      { userId },
+      { $pull: { facts: { id: factId } }, $set: { updatedAt: new Date() } },
+    );
+}
+
+/** Wipes every learned fact for a user (privacy / fresh start). */
+export async function clearMemory(userId: string): Promise<void> {
+  const db = await getDb();
+  await db
+    .collection<DbUserMemory>("user_memory")
+    .updateOne(
+      { userId },
+      { $set: { facts: [], updatedAt: new Date() } },
+      { upsert: true },
+    );
+}
+
+/* ─── LLM usage telemetry ────────────────────────────────────────────── */
+
+export type LlmUsageRow = {
+  _id?: ObjectId;
+  userId: string;
+  providerId: string;
+  modelId: string;
+  tier: "free" | "paid" | "local";
+  mode: "general" | "research" | "study" | "coding";
+  tokensIn: number;
+  tokensOut: number;
+  latencyMs: number;
+  /** True when the orchestrator had to fall back from the initial pick. */
+  fallback: boolean;
+  /** "ok" | "error" — high-level outcome. */
+  outcome: "ok" | "error";
+  errorCode?: string;
+  createdAt: Date;
+};
+
+export async function recordUsage(row: Omit<LlmUsageRow, "_id" | "createdAt">) {
+  try {
+    const db = await getDb();
+    await db.collection<LlmUsageRow>("llm_usage").insertOne({
+      ...row,
+      createdAt: new Date(),
+    });
+  } catch (err) {
+    // Telemetry is best-effort — never crash a chat over it.
+    console.error("[usage] insert failed:", err);
+  }
+}
+
+export type UsageSummary = {
+  totalCalls: number;
+  totalTokensIn: number;
+  totalTokensOut: number;
+  byProvider: Array<{
+    providerId: string;
+    modelId: string;
+    tier: "free" | "paid" | "local";
+    calls: number;
+    tokensIn: number;
+    tokensOut: number;
+    avgLatencyMs: number;
+    errors: number;
+  }>;
+  recent: Array<Pick<
+    LlmUsageRow,
+    "providerId" | "modelId" | "mode" | "tokensIn" | "tokensOut" | "latencyMs" | "outcome" | "fallback" | "createdAt"
+  >>;
+};
+
+/** Summarize the last N days of usage for a single user. */
+export async function getUsageSummary(
+  userId: string,
+  sinceDays = 30,
+): Promise<UsageSummary> {
+  const db = await getDb();
+  const since = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000);
+
+  const rows = await db
+    .collection<LlmUsageRow>("llm_usage")
+    .find({ userId, createdAt: { $gte: since } })
+    .sort({ createdAt: -1 })
+    .limit(2000)
+    .toArray();
+
+  const totalCalls = rows.length;
+  const totalTokensIn = rows.reduce((s, r) => s + (r.tokensIn ?? 0), 0);
+  const totalTokensOut = rows.reduce((s, r) => s + (r.tokensOut ?? 0), 0);
+
+  const groups = new Map<
+    string,
+    UsageSummary["byProvider"][number]
+  >();
+  for (const r of rows) {
+    const key = `${r.providerId}::${r.modelId}`;
+    const g = groups.get(key) ?? {
+      providerId: r.providerId,
+      modelId: r.modelId,
+      tier: r.tier,
+      calls: 0,
+      tokensIn: 0,
+      tokensOut: 0,
+      avgLatencyMs: 0,
+      errors: 0,
+    };
+    g.calls += 1;
+    g.tokensIn += r.tokensIn ?? 0;
+    g.tokensOut += r.tokensOut ?? 0;
+    g.avgLatencyMs += r.latencyMs ?? 0;
+    if (r.outcome === "error") g.errors += 1;
+    groups.set(key, g);
+  }
+  for (const g of groups.values()) {
+    g.avgLatencyMs = g.calls ? Math.round(g.avgLatencyMs / g.calls) : 0;
+  }
+  const byProvider = [...groups.values()].sort((a, b) => b.calls - a.calls);
+
+  const recent = rows.slice(0, 25).map((r) => ({
+    providerId: r.providerId,
+    modelId: r.modelId,
+    mode: r.mode,
+    tokensIn: r.tokensIn,
+    tokensOut: r.tokensOut,
+    latencyMs: r.latencyMs,
+    outcome: r.outcome,
+    fallback: r.fallback,
+    createdAt: r.createdAt,
+  }));
+
+  return { totalCalls, totalTokensIn, totalTokensOut, byProvider, recent };
 }
 
 /** Find a user by their LemonSqueezy subscription id (for update/cancel webhooks). */
@@ -224,6 +831,11 @@ export async function deleteUserCascade(userId: string) {
     db.collection("profiles").deleteMany({ userId }),
     db.collection("roadmaps").deleteMany({ userId }),
     db.collection("links").deleteMany({ studentId: userId }),
+    db.collection("user_memory").deleteMany({ userId }),
+    db.collection("llm_usage").deleteMany({ userId }),
+    db.collection("chat_threads").deleteMany({ userId }),
+    db.collection("chat_messages").deleteMany({ userId }),
+    db.collection("transactions").deleteMany({ userId }),
   ]);
 }
 
@@ -389,4 +1001,13 @@ export async function acceptLink(
     { $set: { status: "accepted", viewerId, acceptedAt: new Date() } },
   );
   return res.modifiedCount > 0;
+}
+
+/** Revoke an invite. Scoped to the owning student so a user can only delete their own. */
+export async function deleteLink(studentId: string, linkId: string): Promise<void> {
+  if (!ObjectId.isValid(linkId)) return;
+  const db = await getDb();
+  await db
+    .collection<DbLink>("links")
+    .deleteOne({ _id: new ObjectId(linkId), studentId });
 }

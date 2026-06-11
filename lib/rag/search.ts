@@ -1,5 +1,6 @@
 import type { EmbeddedDoc, RagDoc } from "./types";
 import { flattenAllDocs } from "./flatten";
+import { embedText } from "@/lib/llm/gemini";
 
 let cachedEmbeddings: EmbeddedDoc[] | null = null;
 
@@ -94,4 +95,32 @@ export async function searchDocs(
   }));
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, topK);
+}
+
+export type KbHit = {
+  id: string;
+  title: string;
+  snippet: string;
+  source: RagDoc["source"];
+  score: number;
+};
+
+/**
+ * Compact KB search used by the Strategist agent (lib/strategist/*). Embeds
+ * the query when a Gemini key is configured, otherwise falls back to keyword
+ * overlap — so grounding works in dev without `npm run embeddings`. Only
+ * returns hits with a positive score so the agent never cites noise.
+ */
+export async function searchKb(query: string, topK = 6): Promise<KbHit[]> {
+  const vector = await embedText(query).catch(() => null);
+  const hits = await searchDocs(query, vector, topK);
+  return hits
+    .filter((h) => h.score > 0)
+    .map((h) => ({
+      id: h.id,
+      title: h.title,
+      snippet: h.text.length > 280 ? h.text.slice(0, 280) + "…" : h.text,
+      source: h.source,
+      score: h.score,
+    }));
 }

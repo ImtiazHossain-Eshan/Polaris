@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { ZodError } from "zod";
 
 /**
@@ -24,12 +24,23 @@ export function fail(status: number, message: string) {
   return NextResponse.json({ error: message }, { status });
 }
 
-type Handler = (req: Request, ctx: unknown) => Promise<NextResponse> | NextResponse;
+/**
+ * Generic over the route context (`...args`) so it accepts both the
+ * legacy no-context handlers and the new Next 15 dynamic routes whose
+ * second arg is `{ params: Promise<…> }`. `req` is typed as NextRequest;
+ * handlers that only need `Request` remain assignable.
+ */
+type RouteHandler<A extends unknown[]> = (
+  req: NextRequest,
+  ...args: A
+) => Response | Promise<Response>;
 
-export function withErrorHandling(handler: Handler): Handler {
-  return async (req, ctx) => {
+export function withErrorHandling<A extends unknown[]>(
+  handler: RouteHandler<A>,
+): RouteHandler<A> {
+  return async (req, ...args) => {
     try {
-      return await handler(req, ctx);
+      return await handler(req, ...args);
     } catch (err) {
       if (err instanceof HttpError) {
         return fail(err.status, err.message);

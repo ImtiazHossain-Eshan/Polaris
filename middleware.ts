@@ -19,6 +19,15 @@ const PROTECTED = [
   "/monitor",
   "/account",
   "/admin",
+  // New (app) workspace shell.
+  "/roadmap",
+  "/strategist",
+  "/deadlines",
+  "/universities",
+  "/resources",
+  "/connections",
+  "/partners",
+  "/settings",
 ];
 
 export async function middleware(req: NextRequest) {
@@ -55,5 +64,13 @@ export const config = {
     "/monitor/:path*",
     "/account/:path*",
     "/admin/:path*",
+    "/roadmap/:path*",
+    "/strategist/:path*",
+    "/deadlines/:path*",
+    "/universities/:path*",
+    "/resources/:path*",
+    "/connections/:path*",
+    "/partners/:path*",
+    "/settings/:path*",
   ],
 };

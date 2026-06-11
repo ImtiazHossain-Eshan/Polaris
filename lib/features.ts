@@ -43,3 +43,22 @@ export const PLAN_LABELS: Record<Plan, string> = {
   pro: "Pro",
   elite: "Elite",
 };
+
+/**
+ * Per-plan quotas for the new app shell (Strategist message budget per
+ * 5-min window, connection limits, gated surfaces). Pure data — safe on
+ * client + server. Mirrored server-side by lib/ratelimit.ts + requirePlan.
+ */
+export const PLAN_FEATURES: Record<
+  Plan,
+  {
+    strategistBudget: number;
+    maxConnections: number;
+    universities: boolean;
+    familyMonitoring: boolean;
+  }
+> = {
+  free: { strategistBudget: 10, maxConnections: 0, universities: false, familyMonitoring: true },
+  pro: { strategistBudget: 30, maxConnections: 6, universities: true, familyMonitoring: true },
+  elite: { strategistBudget: 60, maxConnections: 99, universities: true, familyMonitoring: true },
+};
