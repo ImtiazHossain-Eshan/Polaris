@@ -7,7 +7,9 @@
 import { requireSession } from "@/lib/authz";
 import { getProfile, getUserById } from "@/lib/db/collections";
 import { scoreProbability, profileToInputs, type UniversityForModel } from "@/lib/ml/probability";
+import { planMeets } from "@/lib/features";
 import { StrategistClient, type GapRow } from "@/components/app/StrategistClient";
+import { StrategistLockedPage } from "@/components/app/StrategistLocked";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +22,13 @@ const TARGET: Record<string, { tier: UniversityForModel["tier"]; rate: number; l
 
 export default async function StrategistPage() {
   const user = await requireSession();
+
+  // The AI Strategist is Pro/Elite — Free users get the upgrade screen,
+  // never a degraded chat (the API enforces the same gate).
+  if (!planMeets(user.plan, "pro")) {
+    return <StrategistLockedPage />;
+  }
+
   const [profile, u] = await Promise.all([getProfile(user.id), getUserById(user.id)]);
 
   const inputs = profileToInputs(profile);
