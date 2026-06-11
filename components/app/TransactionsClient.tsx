@@ -15,6 +15,7 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "./ui";
+import { PaymentLogo, CardBrandMark } from "./PaymentLogos";
 import { PremiumSelect, OptionDot } from "@/components/ui/PremiumSelect";
 import { cn } from "@/lib/cn";
 
@@ -32,9 +33,6 @@ export type TxDto = {
   createdAt: string;
 };
 
-const METHOD_TINT: Record<TxDto["method"], string> = {
-  card: "#374151", bkash: "#CF3D6E", nagad: "#F15A29", rocket: "#9249C7",
-};
 
 const STATUS_META: Record<TxDto["status"], { label: string; cls: string; dot: string }> = {
   succeeded:  { label: "Paid",       cls: "bg-aurora-100 text-aurora-700 ring-aurora-400/40 dark:bg-aurora-400/15 dark:text-aurora-100 dark:ring-aurora-400/30", dot: "bg-aurora-500" },
@@ -157,10 +155,14 @@ export function TransactionsClient({ rows, userName, userEmail }: { rows: TxDto[
                   onClick={() => setOpenId(t.id)}
                   className="w-full app-glass rounded-2xl px-4 py-3 flex items-center gap-3.5 text-left hover:-translate-y-0.5 hover:shadow-md transition-all group"
                 >
-                  <span className="h-9 w-12 rounded-lg text-white text-[8.5px] font-bold uppercase tracking-wider inline-flex items-center justify-center shadow-sm shrink-0 group-hover:scale-105 transition-transform"
-                    style={{ background: METHOD_TINT[t.method] }}>
-                    {t.method === "card" ? (t.cardBrand ?? "card") : t.method}
-                  </span>
+                  {t.method === "card" && t.cardBrand ? (
+                    <span className="h-9 w-12 rounded-lg inline-flex items-center justify-center shadow-sm shrink-0 group-hover:scale-105 transition-transform"
+                      style={{ background: "linear-gradient(135deg, #1F2937 0%, #4B5563 120%)" }}>
+                      <CardBrandMark brand={t.cardBrand} height={t.cardBrand === "mastercard" ? 16 : 10} />
+                    </span>
+                  ) : (
+                    <PaymentLogo method={t.method} className="group-hover:scale-105 transition-transform h-9 w-12" />
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="text-[13px] font-semibold text-ink truncate">{t.description}</div>
                     <div className="text-[10.5px] font-mono text-ink-muted mt-0.5">

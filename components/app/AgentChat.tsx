@@ -61,7 +61,15 @@ const MODES: Array<{ id: Mode; label: string }> = [
 ];
 
 export function AgentChat({ studentInitials, pathLabel, contextChips = [] }: Props) {
-  const [messages, setMessages] = useState<StrategistMessage[]>(() => loadCachedThread());
+  // Start empty on both server and client — sessionStorage can't be read
+  // during SSR, so initializing from it desyncs hydration. The cached thread
+  // is restored in the effect just below (declared before the persist effect
+  // so it reads the cache before anything rewrites it).
+  const [messages, setMessages] = useState<StrategistMessage[]>([]);
+  useEffect(() => {
+    const cached = loadCachedThread();
+    if (cached.length) setMessages(cached);
+  }, []);
   const [draft, setDraft] = useState("");
   const [streaming, setStreaming] = useState(false);
   // What the strategist is doing right now ("Searching the web…" etc).

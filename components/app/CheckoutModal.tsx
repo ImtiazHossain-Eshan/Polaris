@@ -16,6 +16,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { PaymentLogo, PaymentMark, CardBrandMark, PAYMENT_BRAND } from "./PaymentLogos";
 import { cn } from "@/lib/cn";
 
 type Method = "card" | "bkash" | "nagad" | "rocket";
@@ -310,27 +311,21 @@ export function CheckoutModal({ open, onClose, plan, onSuccess }: Props) {
    ════════════════════════════════════════════════════════════════════════ */
 
 function MethodTabs({ method, onChange }: { method: Method; onChange: (m: Method) => void }) {
-  const tabs: Array<{ id: Method; label: string; icon: React.ReactNode }> = [
-    { id: "card", label: "Card", icon: <CardGlyph /> },
-    { id: "bkash", label: "bKash", icon: <BkashGlyph /> },
-    { id: "nagad", label: "Nagad", icon: <NagadGlyph /> },
-    { id: "rocket", label: "Rocket", icon: <RocketGlyph /> },
-  ];
   return (
     <div className="grid grid-cols-4 gap-1.5">
-      {tabs.map((t) => (
+      {(["card", "bkash", "nagad", "rocket"] as Method[]).map((id) => (
         <button
-          key={t.id}
-          onClick={() => onChange(t.id)}
+          key={id}
+          onClick={() => onChange(id)}
           className={cn(
-            "flex flex-col items-center gap-1 py-3 rounded-xl text-[11px] font-medium transition-all",
-            method === t.id
-              ? "bg-polaris-50 text-polaris-700 ring-1 ring-inset ring-polaris-300 shadow-sm"
-              : "bg-paper-soft text-ink-dim hover:text-ink hover:bg-paper-card hairline",
+            "flex flex-col items-center gap-1.5 py-2.5 rounded-xl text-[11px] font-medium transition-all",
+            method === id
+              ? "bg-polaris-50 text-polaris-700 ring-2 ring-inset ring-polaris-400 shadow-sm dark:bg-polaris-400/15 dark:text-polaris-100"
+              : "bg-paper-soft text-ink-dim hover:text-ink hover:bg-paper-card hairline hover:-translate-y-px",
           )}
         >
-          <span className={cn("h-5", method === t.id ? "text-polaris-600" : "text-ink-dim")}>{t.icon}</span>
-          {t.label}
+          <PaymentLogo method={id} size="sm" className={cn("transition-transform", method === id && "scale-110")} />
+          {PAYMENT_BRAND[id].name}
         </button>
       ))}
     </div>
@@ -421,19 +416,19 @@ function CardFields({
 }
 
 function WalletFields({ method, phone, setPhone }: { method: Method; phone: string; setPhone: (v: string) => void }) {
-  const brand = method.charAt(0).toUpperCase() + method.slice(1);
   return (
     <div className="space-y-3">
-      <div className="rounded-2xl p-4 text-white shadow-md" style={{
-        background: method === "bkash"
-          ? "linear-gradient(135deg, #5b008b 0%, #cf3d6e 100%)"
-          : method === "nagad"
-            ? "linear-gradient(135deg, #b30b08 0%, #f15a29 100%)"
-            : "linear-gradient(135deg, #5e208f 0%, #9249c7 100%)",
-      }}>
-        <div className="text-[10px] uppercase tracking-wider text-white/75 font-medium">Wallet</div>
-        <div className="font-serif text-[20px] font-bold mt-1">{brand}</div>
-        <div className="mt-3 font-mono text-[15px] tracking-[0.12em]">
+      <div className="relative rounded-2xl p-4 text-white shadow-md overflow-hidden" style={{ background: PAYMENT_BRAND[method].bg }}>
+        {/* oversized watermark mark */}
+        <span className="absolute -right-3 -bottom-4 opacity-[0.16]" aria-hidden>
+          <PaymentMark method={method} size={96} />
+        </span>
+        <div className="relative flex items-start justify-between">
+          <div className="text-[10px] uppercase tracking-wider text-white/75 font-medium">Wallet</div>
+          <PaymentMark method={method} size={22} />
+        </div>
+        <div className="relative font-serif text-[20px] font-bold mt-1">{PAYMENT_BRAND[method].name}</div>
+        <div className="relative mt-3 font-mono text-[15px] tracking-[0.12em]">
           {phone ? formatBdPhone(phone) : "01••• •••• ••"}
         </div>
       </div>
@@ -607,13 +602,7 @@ const inputCls =
   "w-full h-10 px-3 rounded-xl bg-paper-soft hairline text-[13.5px] text-ink placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-polaris-400";
 
 function BrandBadge({ brand }: { brand: string | null }) {
-  if (!brand) return <span className="text-[10px] uppercase tracking-wider text-white/55 font-medium">Card</span>;
-  const label = brand === "amex" ? "AMEX" : brand.charAt(0).toUpperCase() + brand.slice(1);
-  return (
-    <span className="px-2 py-0.5 rounded-md bg-white/15 text-[10px] uppercase tracking-wider font-bold text-white">
-      {label}
-    </span>
-  );
+  return <CardBrandMark brand={brand} height={brand === "mastercard" ? 18 : 14} />;
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -665,18 +654,6 @@ function isLuhnValid(n: string): boolean {
    GLYPHS
    ════════════════════════════════════════════════════════════════════════ */
 
-function CardGlyph() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>;
-}
-function BkashGlyph() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 22V8h4"/><path d="M11 22V12h4l2 4-2 4h-4"/></svg>;
-}
-function NagadGlyph() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>;
-}
-function RocketGlyph() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1-2 3.5-2 5.5 2 0 4.5-.5 5.5-2"/><path d="M12 15l-3-3a22 22 0 0 1 10-10c4 0 5 1 5 5 0 6-6 9-10 10z"/><path d="M9 12H4l4.5-4.5h4"/></svg>;
-}
 function CheckBig() {
   return <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>;
 }

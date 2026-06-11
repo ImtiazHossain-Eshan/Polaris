@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckoutModal } from "./CheckoutModal";
+import { PaymentLogo, CardBrandMark } from "./PaymentLogos";
 import { PLAN_CATALOG, formatMinor, planDescription, type BillingCycle, type PlanId } from "@/lib/billing/plans";
 import { Icon } from "./ui";
 import { cn } from "@/lib/cn";
@@ -394,10 +395,6 @@ function SummaryRow({ k, v }: { k: string; v: string }) {
 
 /* ─── payment methods ─── */
 
-const METHOD_TINT: Record<MethodDto["type"], string> = {
-  card: "#374151", bkash: "#CF3D6E", nagad: "#F15A29", rocket: "#9249C7",
-};
-
 function MethodsPanel({
   methods, onAdd, onChanged,
 }: {
@@ -434,10 +431,14 @@ function MethodsPanel({
         <ul className="space-y-2">
           {methods.map((m) => (
             <li key={m.id} className="flex items-center gap-3 rounded-xl bg-paper-soft px-3.5 py-2.5">
-              <span className="h-8 w-11 rounded-md text-white text-[8.5px] font-bold uppercase tracking-wider inline-flex items-center justify-center shadow-sm shrink-0"
-                style={{ background: METHOD_TINT[m.type] }}>
-                {m.type === "card" ? (m.brand ?? "card") : m.type}
-              </span>
+              {m.type === "card" && m.brand ? (
+                <span className="h-7 w-10 rounded-lg inline-flex items-center justify-center shrink-0 shadow-sm"
+                  style={{ background: "linear-gradient(135deg, #1F2937 0%, #4B5563 120%)" }}>
+                  <CardBrandMark brand={m.brand} height={m.brand === "mastercard" ? 14 : 9} />
+                </span>
+              ) : (
+                <PaymentLogo method={m.type} size="sm" />
+              )}
               <div className="min-w-0 flex-1">
                 <div className="text-[12.5px] font-semibold text-ink truncate">{m.label}</div>
                 {m.isDefault && <div className="text-[10px] uppercase tracking-wider font-bold text-aurora-700 dark:text-aurora-200">Default</div>}
@@ -511,10 +512,13 @@ function AddMethodModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
           {(["card", "bkash", "nagad", "rocket"] as const).map((t) => (
             <button key={t} onClick={() => { setType(t); setValue(""); setErr(null); }}
               className={cn(
-                "h-9 rounded-xl text-[11px] font-semibold capitalize ring-1 ring-inset transition-colors",
-                type === t ? "bg-ink text-paper ring-ink" : "bg-paper-soft text-ink-dim ring-polaris-500/15 hover:text-ink dark:ring-white/[0.12]",
+                "flex flex-col items-center gap-1 py-2 rounded-xl text-[10.5px] font-semibold ring-1 ring-inset transition-all",
+                type === t
+                  ? "bg-polaris-50 text-polaris-700 ring-2 ring-polaris-400 dark:bg-polaris-400/15 dark:text-polaris-100"
+                  : "bg-paper-soft text-ink-dim ring-polaris-500/15 hover:text-ink hover:-translate-y-px dark:ring-white/[0.12]",
               )}>
-              {t === "bkash" ? "bKash" : t}
+              <PaymentLogo method={t} size="sm" />
+              {t === "bkash" ? "bKash" : t[0].toUpperCase() + t.slice(1)}
             </button>
           ))}
         </div>
