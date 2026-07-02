@@ -109,11 +109,21 @@ export function matchOffers(ctx: MatchContext): MatchedOffer[] {
 /** Section builders for the tabs. */
 export function sectionize(matches: MatchedOffer[]) {
   const active = matches.filter((m) => m.offer.status === "active");
+
+  const categoryMap = {
+    scoreBoost: ["sat", "ielts", "mock_test", "tutoring", "olympiad"],
+    appBoost: ["essay", "portfolio", "coding", "research", "design", "productivity", "mentorship"],
+    money: ["scholarship", "cloud", "books"],
+  } as const;
+
+  const inCategory = (offer: PartnerOffer, categories: readonly string[]) =>
+    categories.includes(offer.category);
+
   return {
     matched: active.filter((m) => m.score >= 30).slice(0, 9),
-    scoreBoost: active.filter((m) => ["sat", "ielts", "mock_test", "tutoring", "olympiad"].includes(m.offer.category)),
-    appBoost: active.filter((m) => ["essay", "portfolio", "coding", "research", "design", "productivity", "mentorship"].includes(m.offer.category)),
-    money: active.filter((m) => ["scholarship", "cloud", "books"].includes(m.offer.category)),
+    scoreBoost: active.filter((m) => inCategory(m.offer, categoryMap.scoreBoost)),
+    appBoost: active.filter((m) => inCategory(m.offer, categoryMap.appBoost)),
+    money: active.filter((m) => inCategory(m.offer, categoryMap.money)),
     free: active.filter((m) => m.offer.offerType === "free_student_benefit"),
     comingSoon: matches.filter((m) => m.offer.status === "coming_soon"),
   };
