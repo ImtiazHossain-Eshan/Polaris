@@ -20,7 +20,7 @@ const libre = Libre_Baskerville({
 });
 
 export const metadata: Metadata = {
-  title: "Polaris — Your AI North Star for Academic Strategy",
+  title: "Polaris | Your AI North Star for Academic Strategy",
   description:
     "Polaris is a fully autonomous AI academic strategist. Reverse-engineer a competitive university application profile from school to graduate school.",
 };
